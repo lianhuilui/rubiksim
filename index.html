@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: #333;
+            color: #ccc;
+        }
+
+        canvas {
+            border: 1px solid red;
+            width: 100%;
+            /* image-rendering: pixelated; */
+        }
+
+        canvas#tmp {
+            image-rendering: pixelated;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .wrapper {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Rubik's Art Sim</h1>
+
+    FILE:
+    <input type="text" id="img_url" value="https://preview.redd.it/ifewago7udn71.jpg?width=640&crop=smart&auto=webp&s=227cd45ff84b56b31f4f31e579fe2cbf30ff856f">
+
+    SEGMENTS:
+    <input type="range" min="3" max="150" value="54" class="slider" id="tmp_size" step="3">
+    <span id="tmp_size_value">54</span>
+    <!-- <input type="number" id="tmp_size" value="54"> -->
+    <button id="update">update</button>
+
+    <input type="checkbox" id="show_grid" checked="checked"> <label for="show_grid">SHOW GRID</label>
+
+    <input type="checkbox" id="black_grid" checked="checked"> <label for="black_grid">BLACK GRID</label>
+
+    Function:
+    <select id="function">
+        <option value="1">One</option>
+        <option value="2">Two</option>
+        <option value="3">Three</option>
+        <option value="4">Four</option>
+    </select>
+
+    <br>
+    <br>
+
+    TOTAL CUBES:
+    <span id="cube_count"></span>
+
+
+    <div class="flex">
+        <div class="wrapper">
+            <canvas id="tmp"></canvas>
+        </div>
+        <div class="wrapper">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
