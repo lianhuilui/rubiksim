@@ -1,10 +1,10 @@
 let color_strs = [
+    '#efefef', // white
+    '#efea00', // yellow
+    '#eea500', // orange
     '#bb0000', // red
     '#0000bb', // blue
     // '#009900', // green
-    '#efea00', // yellow
-    '#efefef', // white
-    '#eea500', // orange
 ]
 
 let config = {}
@@ -59,6 +59,7 @@ config.selected_function = nearestPixelColor
 
 config.img_url = ''
 
+config.histogram_ranges = []
 
 let canvas = document.getElementById('canvas')
 let ctx = canvas.getContext('2d')
@@ -95,7 +96,7 @@ function drawHistogram(image_data, histogram) {
     let grays = getHistogram(image_data)
     let context = histogram.getContext('2d')
 
-    let max = Math.max(...grays) / 3 
+    let max = Math.max(...grays) / 2 
 
     histogram.setAttribute('height', max)
     histogram.setAttribute('width', 256)
@@ -221,6 +222,21 @@ function nearestPixelColor2(pixel, colors) {
     }
 
     return result
+}
+
+function histogramValues(pixel, colors) {
+    let gray = 256 - getGray(pixel);
+
+    for (let i = 0; i < config.histogram_ranges.length; i++) {
+        let from = config.histogram_ranges[i].from
+        let to = config.histogram_ranges[i].to
+
+        if (gray >= from && gray <= to) {
+            return colors[i]
+        }
+    }
+
+    return colors[Math.floor(Math.random() * colors.length)]
 }
 
 function saturation(r, g, b) {
@@ -433,6 +449,7 @@ let functions = [
     nearestPixelColor,
     nearestPixelColor2,
     nearestPixelColor3,
+    histogramValues,
 ]
 
 // first draw
@@ -487,4 +504,25 @@ document.getElementById('config_hue').addEventListener('input', (e) => {
 
     c("hue", config.hue)
     update()
+})
+
+document.addEventListener('input', (e) => {
+    if (e.target.className == 'histogram_slider') {
+        let elements = document.getElementsByClassName('histogram_slider');
+
+        config.histogram_ranges = []
+
+        let prev = false
+
+        for (let i = 0; i < elements.length - 1; i++) {
+            let value = elements[i].value
+            let value2 = elements[i+1].value
+
+            config.histogram_ranges.push({from:value, to:value2})
+
+            c(value, value2, config.histogram_ranges)
+        }
+
+        update()
+    }
 })
