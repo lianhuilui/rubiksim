@@ -38,22 +38,32 @@
     FILE:
     <input type="text" id="img_url" value="https://preview.redd.it/ifewago7udn71.jpg?width=640&crop=smart&auto=webp&s=227cd45ff84b56b31f4f31e579fe2cbf30ff856f">
 
+    <br>
+
     SEGMENTS:
-    <input type="range" min="3" max="150" value="54" class="slider" id="tmp_size" step="3">
+    <input style="width: 100%" type="range" min="30" max="90" value="54" class="slider" id="tmp_size" step="3">
+
     <span id="tmp_size_value">54</span>
-    <!-- <input type="number" id="tmp_size" value="54"> -->
+
+    <br>
     <button id="update">update</button>
 
-    <input type="checkbox" id="show_grid" checked="checked"> <label for="show_grid">SHOW GRID</label>
+    <br>
 
+    <input type="checkbox" id="live_update"> <label for="live_update">LIVE UPDATE</label>
+    <br>
+
+    <input type="checkbox" id="show_grid" checked="checked"> <label for="show_grid">SHOW GRID</label>
     <input type="checkbox" id="black_grid" checked="checked"> <label for="black_grid">BLACK GRID</label>
 
+    <br>
     Function:
     <select id="function">
-        <option value="1">One</option>
-        <option value="2">Two</option>
-        <option value="3">Three</option>
-        <option value="4">Four</option>
+        <option value="0">Gray</option>
+        <option value="1">Gray 2</option>
+        <option value="2">Color</option>
+        <option value="3">Color 2</option>
+        <option value="4">Color 3</option>
     </select>
 
     <br>
@@ -62,6 +72,12 @@
     TOTAL CUBES:
     <span id="cube_count"></span>
 
+    HUE:
+    <input style="width: 100%" type="range" min="1" max="255" value="1" class="slider" id="config_hue" step="1">
+
+    SAT:
+    <input style="width: 100%" type="range" min="1" max="255" value="10" class="slider" id="config_sat" step="1">
+
 
     <div class="flex">
         <div class="wrapper">
@@ -69,6 +85,12 @@
         </div>
         <div class="wrapper">
             <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <div class="flex">
+        <div class="wrapper">
+            <canvas id="histogram"></canvas>
         </div>
     </div>
 

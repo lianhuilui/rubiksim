@@ -22,7 +22,7 @@ for (let i = 0; i < color_strs.length; i++) {
 }
 
 // the max width of the pixelated image
-config.tmp_size = 50
+config.tmp_size = 54
 
 // how many cubes side by side
 config.cube_width = Math.floor(config.tmp_size / 3)
@@ -51,6 +51,10 @@ config.height = config.cube_height * 3 * config.square_size
 
 config.should_draw_grids = true
 
+config.live_update = false
+
+config.sat = 10
+
 config.selected_function = nearestPixelColor
 
 config.img_url = ''
@@ -61,10 +65,51 @@ let ctx = canvas.getContext('2d')
 
 let tmp_canvas = document.getElementById('tmp');
 
+let histogram = document.getElementById('histogram');
+
 canvas.setAttribute('width', config.width)
 canvas.setAttribute('height', config.height)
 
-function pixelColorAt(pixel) {
+function getHistogram(image_data) {
+    let grays = []
+
+    for (let i = 0; i < 256; i++) {
+        grays.push(0)
+    }
+
+    for (let y = 0; y < image_data.height; y++) {
+        for (let x = 0; x < image_data.width; x++) {
+            let pixel = pixelAt(image_data, y, x)
+            let gray = getGray(pixel)
+
+            if (gray < grays.length) {
+                grays[gray]++
+            }
+        }
+    }
+
+    return grays
+}
+
+function drawHistogram(image_data, histogram) {
+    let grays = getHistogram(image_data)
+    let context = histogram.getContext('2d')
+
+    let max = Math.max(...grays) / 3 
+
+    histogram.setAttribute('height', max)
+    histogram.setAttribute('width', 256)
+
+    // context.fillStyle = 'white' context.fillRect(0, 0, 256, max)
+    context.lineWidth = 1
+    context.strokeStyle = 'black'
+
+    for (let i = 0; i < grays.length; i++) {
+        drawLine(context, i, max, i, max-grays[i])
+    }
+}
+
+function pixelToRGB(pixel) {
     let { r, g, b } = pixel
 
     return `rgb(${r}, ${g}, ${b})`
@@ -80,6 +125,10 @@ function pixelAt(data, x, y) {
     return { r, g, b }
 }
 
+function getGray(pixel) {
+    return Math.floor((pixel.r + pixel.g + pixel.b) / 3)
+}
+
 function nearestPixelGray(pixel, colors) {
     // find nearest pixel
     let last_diff = 0
@@ -88,8 +137,8 @@ function nearestPixelGray(pixel, colors) {
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
 
-        const color_avg = Math.floor((color.r + color.g + color.b) / 3)
-        const pixel_avg = Math.floor((pixel.r + pixel.g + pixel.b) / 3)
+        const color_avg = getGray(color)
+        const pixel_avg = getGray(pixel)
 
         diff = Math.abs(color_avg - pixel_avg)
 
@@ -134,11 +183,11 @@ function nearestPixelColor(pixel, colors) {
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
 
-        d_r = Math.abs(color.r - pixel.r)
-        d_g = Math.abs(color.g - pixel.g)
-        d_b = Math.abs(color.b - pixel.b)
+        let d_r = Math.abs(color.r - pixel.r)
+        let d_g = Math.abs(color.g - pixel.g)
+        let d_b = Math.abs(color.b - pixel.b)
 
-        diff = d_r + d_b + d_g
+        let diff = d_r + d_b + d_g
 
         if (result == null || diff < last_diff) {
             result = color
@@ -157,11 +206,11 @@ function nearestPixelColor2(pixel, colors) {
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
 
-        d_r = Math.abs(color.r - pixel.r)
-        d_g = Math.abs(color.g - pixel.g)
-        d_b = Math.abs(color.b - pixel.b)
+        let d_r = Math.abs(color.r - pixel.r)
+        let d_g = Math.abs(color.g - pixel.g)
+        let d_b = Math.abs(color.b - pixel.b)
 
-        diff = (d_r + d_b) ** 2
+        let diff = (d_r + d_b) ** 2
             + (d_r + d_g) ** 2
             + (d_g + d_b) ** 2
 
@@ -174,9 +223,76 @@ function nearestPixelColor2(pixel, colors) {
     return result
 }
 
+function saturation(r, g, b) {
+    return (r * 0.3333 + g * 0.3333 + b * 0.3333)
+}
+
+function rgb2hue(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    var max = Math.max(r, g, b);
+    var min = Math.min(r, g, b);
+    var c = max - min;
+    var hue;
+    if (c == 0) {
+        hue = 0;
+    } else {
+        switch (max) {
+            case r:
+                var segment = (g - b) / c;
+                var shift = 0 / 60;       // R° / (360° / hex sides)
+                if (segment < 0) {          // hue > 180, full rotation
+                    shift = 360 / 60;         // R° / (360° / hex sides)
+                }
+                hue = segment + shift;
+                break;
+            case g:
+                var segment = (b - r) / c;
+                var shift = 120 / 60;     // G° / (360° / hex sides)
+                hue = segment + shift;
+                break;
+            case b:
+                var segment = (r - g) / c;
+                var shift = 240 / 60;     // B° / (360° / hex sides)
+                hue = segment + shift;
+                break;
+        }
+    }
+    return hue * 60; // hue is in [0,6], scale it up
+}
+
+function nearestPixelColor3(pixel, colors) {
+    // find nearest pixel
+    let last_diff = 0
+    let result = null
+
+    for (let i = 0; i < colors.length; i++) {
+        const color = colors[i];
+
+        let hue = rgb2hue(color.r, color.g, color.b)
+        let sat = Math.floor(saturation(color.r, color.g, color.b))
+
+        let h = rgb2hue(pixel.r, pixel.g, pixel.b)
+        let s = Math.floor(saturation(pixel.r, pixel.g, pixel.b))
+
+        // let diff = Math.abs((h + h * (s / 255)) - (hue + hue * (sat / 255)))
+        // let diff = Math.abs((s + s * 2 * (h / 255)) - (sat + sat * 2 * (hue / 255)))
+        // let diff = Math.abs((s / 255 * h * 100) - (sat / 255 * hue * 100))
+
+        let diff = Math.abs((h / config.hue + s / config.sat) - (hue / config.hue + sat / config.sat))
+
+        if (result == null || diff < last_diff) {
+            result = color
+            last_diff = diff
+        }
+    }
+
+    return result
+}
+
 function drawPreview(callback) {
     let img = new Image;
-
     let ctx = tmp_canvas.getContext('2d');
 
     img.onload = function () {
@@ -230,7 +346,7 @@ function drawRubiks() {
                 var random_color = color_strs[Math.floor(Math.random() * color_strs.length)]
             } else {
                 let myfunc = config.selected_function;
-                random_color = pixelColorAt(myfunc(pixelAt(window.data, _x, _y), config.colors))
+                random_color = pixelToRGB(myfunc(pixelAt(window.data, _x, _y), config.colors))
             }
 
             ctx.fillStyle = random_color
@@ -282,27 +398,41 @@ function drawGrids(ctx, cube_width, cube_height, square_size, cube_gap_size, wid
     }
 }
 
+function c(...args) {
+    console.log(...args)
+}
 
 function update() {
-    config.tmp_size = document.getElementById('tmp_size').value
+    c('update', config)
+
+    config.tmp_size = parseInt(document.getElementById('tmp_size').value)
     config.cube_width = Math.floor(config.tmp_size / 3)
     config.img_url = document.getElementById('img_url').value
 
-    drawPreview(drawRubiks)
+    const _update = function () {
+        let ratio = tmp_canvas.getAttribute('width') / tmp_canvas.getAttribute('height')
+        config.cube_height = Math.floor(config.cube_width / ratio)
 
-    let ratio = tmp_canvas.getAttribute('width') / tmp_canvas.getAttribute('height')
-    config.cube_height = Math.floor(config.cube_width / ratio)
+        document.getElementById('cube_count').innerHTML = `${config.cube_width} x ${config.cube_height} = ${config.cube_width * config.cube_height}`
+    }
 
-    document.getElementById('cube_count').innerHTML = `${config.cube_width} x ${config.cube_height} = ${config.cube_width * config.cube_height}`
+    const _callback = function () {
+        drawRubiks()
+        _update()
+        drawHistogram(window.data, histogram)
+    }
+
+    drawPreview(_callback)
 }
 
 
 let selected = 0
 let functions = [
     nearestPixelGray,
-    nearestPixelColor,
     nearestPixelGray2,
+    nearestPixelColor,
     nearestPixelColor2,
+    nearestPixelColor3,
 ]
 
 // first draw
@@ -311,7 +441,10 @@ update()
 // hook event handlers for live update
 document.getElementById('tmp_size').addEventListener('input', (e) => {
     document.getElementById('tmp_size_value').innerHTML = e.target.value
-    // update()
+
+    if (config.live_update) {
+        update()
+    }
 })
 
 document.getElementById('tmp_size').addEventListener('change', (e) => {
@@ -328,11 +461,30 @@ document.getElementById('show_grid').addEventListener('click', (e) => {
 })
 
 document.getElementById('black_grid').addEventListener('change', (e) => {
-    config.border_color = document.getElementById('black_grid').checked ? '#111' : '#eee'
+    config.border_color = document.getElementById('black_grid').checked
+        ? '#1f1f1f' : '#efefef'
     update()
+})
+
+document.getElementById('live_update').addEventListener('change', (e) => {
+    config.live_update = e.target.checked
 })
 
 document.getElementById('function').addEventListener('change', (e) => {
     config.selected_function = functions[parseInt(e.target.value) % functions.length]
+    update()
+})
+
+document.getElementById('config_sat').addEventListener('input', (e) => {
+    config.sat = parseInt(e.target.value)
+
+    c("sat", config.sat)
+    update()
+})
+
+document.getElementById('config_hue').addEventListener('input', (e) => {
+    config.hue = parseInt(e.target.value)
+
+    c("hue", config.hue)
     update()
 })
