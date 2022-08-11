@@ -49,6 +49,8 @@ config.border_color = '#111'
 config.width = config.cube_width * 3 * config.square_size
 config.height = config.cube_height * 3 * config.square_size
 
+config.cube_current_pos = { x: 0, y: 0 }
+
 config.should_draw_grids = true
 
 config.live_update = false
@@ -101,8 +103,11 @@ function drawHistogram(image_data, histogram) {
     histogram.setAttribute('height', max)
     histogram.setAttribute('width', 256)
 
+    context.fillStyle = 'white'
+    context.fillRect(0, 0, 256, max)
+
     // context.fillStyle = 'white' context.fillRect(0, 0, 256, max)
-    context.lineWidth = 1
+    context.lineWidth = 2
     context.strokeStyle = 'black'
 
     for (let i = 0; i < grays.length; i++) {
@@ -376,6 +381,32 @@ function drawRubiks() {
 
             ctx.fillStyle = random_color
             ctx.fillRect(x, y, x + config.square_size, y + config.square_size)
+
+        }
+    }
+
+    let cube = document.getElementById('cube')
+    let size = 50
+
+    if (cube) {
+        cube.setAttribute('width', size * 3)
+        cube.setAttribute('height', size * 3)
+
+        let myfunc = config.selected_function;
+
+        let cube_context = cube.getContext('2d')
+
+        if (config.cube_current_pos && cube) {
+            let pos = config.cube_current_pos
+
+            for (let j = 0; j < 3; j++) {
+                for (let i = 0; i < 3; i++) {
+                    let square_color = pixelToRGB(myfunc(pixelAt(window.data, (pos.x * 3) + i, (pos.y * 3) + j), config.colors))
+
+                    cube_context.fillStyle = square_color
+                    cube_context.fillRect((i) * size, (j) * size, (i + 1) * size, (j + 1) * size)
+                }
+            }
         }
     }
 
@@ -428,7 +459,7 @@ function c(...args) {
 }
 
 function update() {
-    c('update', config)
+    // c('update', config)
 
     config.tmp_size = parseInt(document.getElementById('tmp_size').value)
     config.cube_width = Math.floor(config.tmp_size / 3)
@@ -453,10 +484,41 @@ function update() {
     const _callback = function () {
         drawRubiks()
         _update()
+        drawCursor()
         drawHistogram(window.data, histogram)
     }
 
     drawPreview(_callback)
+}
+
+function drawCursor() {
+    let pos = config.cube_current_pos
+    let size = config.square_size
+
+    let _x = pos.x * size * 3
+    let _y = pos.y * size * 3
+
+    ctx.lineWidth = 20
+    ctx.strokeStyle = 'red'
+    ctx.beginPath()
+    ctx.rect(_x, _y, (size * 3), (size * 3))
+    ctx.stroke()
+
+    drawLine(ctx, 0, 0, _x, _y)
+    drawLine(ctx, 0, config.height, _x, _y + (size * 3))
+    drawLine(ctx, config.width, 0, (size * 3) + _x, _y)
+    drawLine(ctx, config.width, config.height, (size * 3) + _x, _y + (size * 3))
+
+    ctx.lineWidth = 6
+    ctx.strokeStyle = 'white'
+    ctx.beginPath()
+    ctx.rect(_x, _y, (size * 3), (size * 3))
+    ctx.stroke()
+
+    drawLine(ctx, 0, 0, _x, _y)
+    drawLine(ctx, 0, config.height, _x, _y + (size * 3))
+    drawLine(ctx, config.width, 0, (size * 3) + _x, _y)
+    drawLine(ctx, config.width, config.height, (size * 3) + _x, _y + (size * 3))
 }
 
 function update_histogram_ranges() {
@@ -482,7 +544,7 @@ function buildSliders(colors) {
             let input = document.createElement('input')
             let value = 0
 
-            value = Math.floor(i * 256/colors.length)
+            value = Math.floor(i * 256 / colors.length)
 
             input.setAttribute('type', 'range')
             input.setAttribute('min', '1')
@@ -554,5 +616,25 @@ document.addEventListener('input', (e) => {
         update_histogram_ranges()
 
         update()
+    }
+})
+
+document.addEventListener('keydown', (e) => {
+    if (e.target == document.getElementsByTagName('body')[0]) {
+        if (e.key == 'w') {
+            config.cube_current_pos.y = Math.max(0, config.cube_current_pos.y - 1)
+            update()
+        } else if (e.key == 'a') {
+            config.cube_current_pos.x = Math.max(0, config.cube_current_pos.x - 1)
+            update()
+        } else if (e.key == 's') {
+            config.cube_current_pos.y = Math.min(config.cube_height - 1, config.cube_current_pos.y + 1)
+            update()
+        } else if (e.key == 'd') {
+            config.cube_current_pos.x = Math.min(config.cube_width - 1, config.cube_current_pos.x + 1)
+            update()
+        }
+        c(e.key, 'pressed')
+        c(config.cube_current_pos)
     }
 })
