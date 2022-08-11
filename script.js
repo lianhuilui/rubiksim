@@ -1,9 +1,9 @@
 let color_strs = [
     '#efefef', // white
     '#efea00', // yellow
-    '#eea500', // orange
+    // '#eea500', // orange
     '#bb0000', // red
-    '#0000bb', // blue
+    // '#0000bb', // blue
     // '#009900', // green
 ]
 
@@ -96,7 +96,7 @@ function drawHistogram(image_data, histogram) {
     let grays = getHistogram(image_data)
     let context = histogram.getContext('2d')
 
-    let max = Math.max(...grays) / 2 
+    let max = Math.max(...grays)
 
     histogram.setAttribute('height', max)
     histogram.setAttribute('width', 256)
@@ -106,7 +106,7 @@ function drawHistogram(image_data, histogram) {
     context.strokeStyle = 'black'
 
     for (let i = 0; i < grays.length; i++) {
-        drawLine(context, i, max, i, max-grays[i])
+        drawLine(context, i, max, i, max - grays[i])
     }
 }
 
@@ -227,7 +227,9 @@ function nearestPixelColor2(pixel, colors) {
 function histogramValues(pixel, colors) {
     let gray = 256 - getGray(pixel);
 
-    for (let i = 0; i < config.histogram_ranges.length; i++) {
+    let len = config.histogram_ranges.length;
+
+    for (let i = 0; i < len; i++) {
         let from = config.histogram_ranges[i].from
         let to = config.histogram_ranges[i].to
 
@@ -424,6 +426,15 @@ function update() {
     config.tmp_size = parseInt(document.getElementById('tmp_size').value)
     config.cube_width = Math.floor(config.tmp_size / 3)
     config.img_url = document.getElementById('img_url').value
+    config.selected_function = functions[parseInt(document.getElementById('function').value) % functions.length];
+    config.border_color = document.getElementById('black_grid').checked
+        ? '#1f1f1f' : '#efefef'
+    config.should_draw_grids = document.getElementById('show_grid').checked
+    config.sat = parseInt(document.getElementById('config_sat').value)
+    config.hue = parseInt(document.getElementById('config_hue').value)
+    config.live_update = document.getElementById('live_update')
+
+    update_histogram_ranges()
 
     const _update = function () {
         let ratio = tmp_canvas.getAttribute('width') / tmp_canvas.getAttribute('height')
@@ -441,6 +452,18 @@ function update() {
     drawPreview(_callback)
 }
 
+function update_histogram_ranges() {
+    let elements = document.getElementsByClassName('histogram_slider');
+
+    config.histogram_ranges = []
+
+    for (let i = 0; i < elements.length - 1; i++) {
+        let value = elements[i].value
+        let value2 = elements[i + 1].value
+
+        config.histogram_ranges.push({ from: value, to: value2 })
+    }
+}
 
 let selected = 0
 let functions = [
@@ -468,60 +491,33 @@ document.getElementById('tmp_size').addEventListener('change', (e) => {
     update()
 })
 
-document.getElementById('update').addEventListener('click', (e) => {
-    update()
-})
-
 document.getElementById('show_grid').addEventListener('click', (e) => {
-    config.should_draw_grids = e.target.checked
     update()
 })
 
 document.getElementById('black_grid').addEventListener('change', (e) => {
-    config.border_color = document.getElementById('black_grid').checked
-        ? '#1f1f1f' : '#efefef'
     update()
 })
 
 document.getElementById('live_update').addEventListener('change', (e) => {
-    config.live_update = e.target.checked
+    config.live_update = document.getElementById('live_update')
 })
 
 document.getElementById('function').addEventListener('change', (e) => {
-    config.selected_function = functions[parseInt(e.target.value) % functions.length]
     update()
 })
 
 document.getElementById('config_sat').addEventListener('input', (e) => {
-    config.sat = parseInt(e.target.value)
-
-    c("sat", config.sat)
     update()
 })
 
 document.getElementById('config_hue').addEventListener('input', (e) => {
-    config.hue = parseInt(e.target.value)
-
-    c("hue", config.hue)
     update()
 })
 
 document.addEventListener('input', (e) => {
     if (e.target.className == 'histogram_slider') {
-        let elements = document.getElementsByClassName('histogram_slider');
-
-        config.histogram_ranges = []
-
-        let prev = false
-
-        for (let i = 0; i < elements.length - 1; i++) {
-            let value = elements[i].value
-            let value2 = elements[i+1].value
-
-            config.histogram_ranges.push({from:value, to:value2})
-
-            c(value, value2, config.histogram_ranges)
-        }
+        update_histogram_ranges()
 
         update()
     }
