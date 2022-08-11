@@ -1,9 +1,9 @@
 let color_strs = [
-    '#efefef', // white
-    '#efea00', // yellow
-    '#eea500', // orange
-    '#bb0000', // red
     '#0000bb', // blue
+    '#bb0000', // red
+    '#eea500', // orange
+    '#efea00', // yellow
+    '#efefef', // white
     // '#009900', // green
 ]
 
@@ -225,7 +225,7 @@ function nearestPixelColor2(pixel, colors) {
 }
 
 function histogramValues(pixel, colors) {
-    let gray = 256 - getGray(pixel);
+    let gray = getGray(pixel);
 
     let len = config.histogram_ranges.length;
 
