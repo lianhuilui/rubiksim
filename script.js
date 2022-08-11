@@ -1,9 +1,9 @@
 let color_strs = [
     '#efefef', // white
     '#efea00', // yellow
-    // '#eea500', // orange
+    '#eea500', // orange
     '#bb0000', // red
-    // '#0000bb', // blue
+    '#0000bb', // blue
     // '#009900', // green
 ]
 
@@ -22,7 +22,7 @@ for (let i = 0; i < color_strs.length; i++) {
 }
 
 // the max width of the pixelated image
-config.tmp_size = 54
+config.tmp_size = 9
 
 // how many cubes side by side
 config.cube_width = Math.floor(config.tmp_size / 3)
@@ -234,11 +234,18 @@ function histogramValues(pixel, colors) {
         let to = config.histogram_ranges[i].to
 
         if (gray >= from && gray <= to) {
+            if (colors[i] == undefined) {
+                console.log('it is undefined')
+            }
+
+            // console.log('values returning', colors[i])
             return colors[i]
         }
     }
 
-    return colors[Math.floor(Math.random() * colors.length)]
+    let ran = colors[Math.floor(Math.random() * colors.length)]
+    // console.log('values returning random;', ran)
+    return ran
 }
 
 function saturation(r, g, b) {
@@ -465,6 +472,30 @@ function update_histogram_ranges() {
     }
 }
 
+function buildSliders(colors) {
+
+    let placeholder = document.getElementById('histogram_placeholder')
+
+    if (placeholder) {
+        for (let i = 0; i < colors.length + 1; i++) {
+
+            let input = document.createElement('input')
+            let value = 0
+
+            value = Math.floor(i * 256/colors.length)
+
+            input.setAttribute('type', 'range')
+            input.setAttribute('min', '1')
+            input.setAttribute('max', '256')
+            input.setAttribute('value', value)
+            input.setAttribute('step', '1')
+            input.className = 'histogram_slider'
+            placeholder.appendChild(input)
+        }
+
+    }
+}
+
 let selected = 0
 let functions = [
     nearestPixelGray,
@@ -474,6 +505,9 @@ let functions = [
     nearestPixelColor3,
     histogramValues,
 ]
+
+// histogram sliders
+buildSliders(color_strs)
 
 // first draw
 update()

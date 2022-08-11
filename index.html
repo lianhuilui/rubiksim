@@ -34,20 +34,25 @@
         .wrapper {
             flex: 1;
         }
+
+        #histogram_placeholder {
+            display:flex;
+            flex-direction: column;
+        }
     </style>
 </head>
 
 <body>
-    <h1>Rubik's Art Sim</h1>
-
-    FILE:
-    <input type="text" id="img_url"
-        value="https://preview.redd.it/ifewago7udn71.jpg?width=640&crop=smart&auto=webp&s=227cd45ff84b56b31f4f31e579fe2cbf30ff856f">
-
-    <br>
-
-    SEGMENTS:
     <div class="flex">
+        <canvas id="tmp" style="max-height: 40px"></canvas>
+        <div class="wrapper">
+            <input type="text" id="img_url" style="width: 100%"
+                value="https://preview.redd.it/ifewago7udn71.jpg?width=640&crop=smart&auto=webp&s=227cd45ff84b56b31f4f31e579fe2cbf30ff856f">
+        </div>
+    </div>
+
+    <div class="flex">
+        SEGMENTS:
         <input style="flex:1" type="range" min="30" max="150" value="54" class="slider" id="tmp_size" step="3">
         <span id="tmp_size_value">54</span>
     </div>
@@ -56,22 +61,18 @@
         <input type="checkbox" id="live_update"> <label for="live_update">LIVE UPDATE</label>
         <input type="checkbox" id="show_grid" checked="checked"> <label for="show_grid">SHOW GRID</label>
         <input type="checkbox" id="black_grid" checked="checked"> <label for="black_grid">BLACK GRID</label>
+        <div>
+            Function:
+            <select id="function">
+                <option value="0">Gray</option>
+                <option value="1">Gray 2</option>
+                <option value="2">Color</option>
+                <option value="3">Color 2</option>
+                <option value="4">Color 3</option>
+                <option value="5">Histogram Ranges</option>
+            </select>
+        </div>
     </div>
-
-    Function:
-    <select id="function">
-        <option value="0">Gray</option>
-        <option value="1">Gray 2</option>
-        <option value="2">Color</option>
-        <option value="3">Color 2</option>
-        <option value="4">Color 3</option>
-        <option value="5">Histogram Ranges</option>
-    </select>
-
-    <br>
-
-    TOTAL CUBES:
-    <span id="cube_count"></span>
 
     <div class="flex">
         HUE:
@@ -80,12 +81,8 @@
         SAT:
         <input style="width: 100%" type="range" min="1" max="255" value="10" class="slider" id="config_sat" step="1">
     </div>
-
-    <div class="flex">
-        <div class="wrapper">
-            <canvas id="tmp" style="height: 50px"></canvas>
-        </div>
-    </div>
+    TOTAL CUBES:
+    <span id="cube_count"></span>
     <div class="flex">
         <div class="wrapper">
             <canvas id="canvas"></canvas>
@@ -93,12 +90,7 @@
     </div>
 
     HISTOGRAM:
-    <input style="width: 100%" type="range" min="1" max="256" value="0" class="histogram_slider" step="1">
-    <input style="width: 100%" type="range" min="1" max="256" value="40" class="histogram_slider" step="1">
-    <input style="width: 100%" type="range" min="1" max="256" value="70" class="histogram_slider" step="1">
-    <input style="width: 100%" type="range" min="1" max="256" value="100" class="histogram_slider" step="1">
-    <input style="width: 100%" type="range" min="1" max="256" value="150" class="histogram_slider" step="1">
-    <input style="width: 100%" type="range" min="1" max="256" value="256" class="histogram_slider" step="1">
+    <div id="histogram_placeholder"></div>
 
     <div class="flex">
         <div class="wrapper">
