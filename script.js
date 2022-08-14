@@ -55,6 +55,8 @@ config.should_draw_grids = true
 
 config.live_update = false
 
+config.show_crosshair = false
+
 config.sat = 10
 
 config.selected_function = nearestPixelColor
@@ -470,7 +472,8 @@ function update() {
     config.should_draw_grids = document.getElementById('show_grid').checked
     config.sat = parseInt(document.getElementById('config_sat').value)
     config.hue = parseInt(document.getElementById('config_hue').value)
-    config.live_update = document.getElementById('live_update')
+    config.live_update = document.getElementById('live_update').checked
+    config.show_crosshair = document.getElementById('show_crosshair').checked
 
     update_histogram_ranges()
 
@@ -484,7 +487,7 @@ function update() {
     const _callback = function () {
         drawRubiks()
         _update()
-        drawCursor()
+        if (config.show_crosshair) drawCursor()
         drawHistogram(window.data, histogram)
     }
 
@@ -587,7 +590,7 @@ document.getElementById('tmp_size').addEventListener('change', (e) => {
     update()
 })
 
-document.getElementById('show_grid').addEventListener('click', (e) => {
+document.getElementById('show_grid').addEventListener('change', (e) => {
     update()
 })
 
@@ -608,6 +611,10 @@ document.getElementById('config_sat').addEventListener('input', (e) => {
 })
 
 document.getElementById('config_hue').addEventListener('input', (e) => {
+    update()
+})
+
+document.getElementById('show_crosshair').addEventListener('change', (e) => {
     update()
 })
 
