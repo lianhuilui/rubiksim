@@ -556,6 +556,12 @@ function buildSliders(colors) {
             input.setAttribute('step', '1')
             input.className = 'histogram_slider'
             placeholder.appendChild(input)
+            
+            // todo: add color box
+            let box = document.createElement('div')
+            box.style = 'height: 20px; width: 40px; margin: 0 auto; background-color: ' + colors[i] + ';'
+
+            placeholder.appendChild(box)
         }
 
     }
