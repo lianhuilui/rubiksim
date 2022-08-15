@@ -460,20 +460,30 @@ function c(...args) {
     console.log(...args)
 }
 
-function update() {
+function update(new_config) {
     // c('update', config)
 
-    config.tmp_size = parseInt(document.getElementById('tmp_size').value)
-    config.cube_width = Math.floor(config.tmp_size / 3)
-    config.img_url = document.getElementById('img_url').value
-    config.selected_function = functions[parseInt(document.getElementById('function').value) % functions.length];
-    config.border_color = document.getElementById('black_grid').checked
-        ? '#1f1f1f' : '#efefef'
-    config.should_draw_grids = document.getElementById('show_grid').checked
-    config.sat = parseInt(document.getElementById('config_sat').value)
-    config.hue = parseInt(document.getElementById('config_hue').value)
-    config.live_update = document.getElementById('live_update').checked
-    config.show_crosshair = document.getElementById('show_crosshair').checked
+    if (new_config == undefined) {
+        config.tmp_size = parseInt(document.getElementById('tmp_size').value)
+        config.cube_width = Math.floor(config.tmp_size / 3)
+        config.img_url = document.getElementById('img_url').value
+        config.selected_function = functions[parseInt(document.getElementById('function').value) % functions.length];
+        config.border_color = document.getElementById('black_grid').checked
+            ? '#1f1f1f' : '#efefef'
+        config.should_draw_grids = document.getElementById('show_grid').checked
+        config.sat = parseInt(document.getElementById('config_sat').value)
+        config.hue = parseInt(document.getElementById('config_hue').value)
+        config.live_update = document.getElementById('live_update').checked
+        config.show_crosshair = document.getElementById('show_crosshair').checked
+    } else {
+        config = new_config
+    }
+
+    if (config.selected_function == histogramValues) {
+        toggleSliderVisibility(true)
+    } else {
+        toggleSliderVisibility(false)
+    }
 
     update_histogram_ranges()
 
@@ -556,8 +566,7 @@ function buildSliders(colors) {
             input.setAttribute('step', '1')
             input.className = 'histogram_slider'
             placeholder.appendChild(input)
-            
-            // todo: add color box
+
             let box = document.createElement('div')
             box.style = 'height: 20px; width: 40px; margin: 0 auto; background-color: ' + colors[i] + ';'
 
@@ -565,6 +574,12 @@ function buildSliders(colors) {
         }
 
     }
+}
+
+function toggleSliderVisibility(show) {
+    let placeholder = document.getElementById('histogram_placeholder')
+
+    placeholder.style.display = show ? 'flex' : 'none'
 }
 
 let selected = 0
