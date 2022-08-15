@@ -374,14 +374,77 @@ function drawRubiks() {
             let _x = Math.floor(x / config.square_size)
             let _y = Math.floor(y / config.square_size)
 
+            let thecolor;
+
             if (_y * window.data.width + _x > window.data.width * window.data.height) {
-                var random_color = color_strs[Math.floor(Math.random() * color_strs.length)]
+                thecolor = color_strs[Math.floor(Math.random() * color_strs.length)]
             } else {
                 let myfunc = config.selected_function;
-                random_color = pixelToRGB(myfunc(pixelAt(window.data, _x, _y), config.colors))
+                let thepixel = pixelAt(window.data, _x, _y)
+
+                let themorepixel = {
+                    r: Math.min(thepixel.r * 1.05, 256),
+                    g: Math.min(thepixel.g * 1.05, 256),
+                    b: Math.min(thepixel.b * 1.05, 256)
+                }
+
+                let themoremorepixel = {
+                    r: Math.min(thepixel.r * 1.15, 256),
+                    g: Math.min(thepixel.g * 1.15, 256),
+                    b: Math.min(thepixel.b * 1.15, 256)
+                }
+
+                let thelesspixel = {
+                    r: Math.max(thepixel.r * 0.95, 0),
+                    g: Math.max(thepixel.g * 0.95, 0),
+                    b: Math.max(thepixel.b * 0.95, 0)
+                }
+
+                let thelesslesspixel = {
+                    r: Math.max(thepixel.r * 0.90, 0),
+                    g: Math.max(thepixel.g * 0.90, 0),
+                    b: Math.max(thepixel.b * 0.90, 0)
+                }
+
+                // todo: add dithering here
+                thecolor = pixelToRGB(myfunc(thepixel, config.colors))
+
+                let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
+                let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
+
+                let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
+                let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
+
+                if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
+                    console.log(_x, _y, 'color', thecolor)
+                    console.log('less', thecolor_less)
+
+                    if ((_x + _y) % 2) {
+                        thecolor = thecolor_less
+                    }
+
+                } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
+                    console.log(_x, _y, 'color', thecolor)
+                    console.log('more', thecolor_more)
+
+                    if ((_x + _y) % 2 == 0) {
+                        thecolor = thecolor_more
+                    }
+
+                } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
+                    if ((_x + _y) % 2 && !(_x % 2)) {
+                        thecolor = thecolor_lessless
+                    }
+
+                } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
+                    if ((_x + _y) % 2 == 0 && !(_x % 2)) {
+                        thecolor = thecolor_moremore
+                    }
+                } 
+
             }
 
-            ctx.fillStyle = random_color
+            ctx.fillStyle = thecolor
             ctx.fillRect(x, y, x + config.square_size, y + config.square_size)
 
         }
