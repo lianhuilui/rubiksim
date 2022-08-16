@@ -4,7 +4,7 @@ let color_strs = [
     '#eea500', // orange
     '#efea00', // yellow
     '#efefef', // white
-    '#009900', // green
+    // '#009900', // green
 ]
 
 let config = {}
@@ -74,6 +74,15 @@ let histogram = document.getElementById('histogram');
 
 canvas.setAttribute('width', config.width)
 canvas.setAttribute('height', config.height)
+
+const dither_functions = [
+    (x, y) => (x + y) % 2 == 0,
+    (x, y) => (x + y) % 4 == 0 && (x - y) % 4 == 0,
+    (x, y) => (x - y) % 4 == 0,
+    (x, y) => (x + y) % 4 == 0,
+    (x, y) => (x) % 2 == 0,
+    (x, y) => (y) % 2 == 0,
+]
 
 function getHistogram(image_data) {
     let grays = []
@@ -379,57 +388,58 @@ function drawRubiks() {
             } else {
                 let myfunc = config.selected_function;
                 let thepixel = pixelAt(window.data, _x, _y)
-
-                let themorepixel = {
-                    r: Math.min(thepixel.r * 1.05, 255),
-                    g: Math.min(thepixel.g * 1.05, 255),
-                    b: Math.min(thepixel.b * 1.05, 255)
-                }
-
-                let themoremorepixel = {
-                    r: Math.min(thepixel.r * 1.15, 255),
-                    g: Math.min(thepixel.g * 1.15, 255),
-                    b: Math.min(thepixel.b * 1.15, 255)
-                }
-
-                let thelesspixel = {
-                    r: Math.max(thepixel.r * 0.95, 0),
-                    g: Math.max(thepixel.g * 0.95, 0),
-                    b: Math.max(thepixel.b * 0.95, 0)
-                }
-
-                let thelesslesspixel = {
-                    r: Math.max(thepixel.r * 0.90, 0),
-                    g: Math.max(thepixel.g * 0.90, 0),
-                    b: Math.max(thepixel.b * 0.90, 0)
-                }
-
-                // todo: add dithering here
                 thecolor = pixelToRGB(myfunc(thepixel, config.colors))
 
-                let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
-                let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
+                if (config.dithering) {
+                    // todo: refactor
+                    let themorepixel = {
+                        r: Math.min(thepixel.r * 1.05, 255),
+                        g: Math.min(thepixel.g * 1.05, 255),
+                        b: Math.min(thepixel.b * 1.05, 255)
+                    }
 
-                let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
-                let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
+                    let themoremorepixel = {
+                        r: Math.min(thepixel.r * 1.15, 255),
+                        g: Math.min(thepixel.g * 1.15, 255),
+                        b: Math.min(thepixel.b * 1.15, 255)
+                    }
 
-                if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
-                    if ((_x + _y) % 2) {
-                        thecolor = thecolor_less
+                    let thelesspixel = {
+                        r: Math.max(thepixel.r * 0.95, 0),
+                        g: Math.max(thepixel.g * 0.95, 0),
+                        b: Math.max(thepixel.b * 0.95, 0)
                     }
-                } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
-                    if ((_x + _y) % 2 == 0) {
-                        thecolor = thecolor_more
+
+                    let thelesslesspixel = {
+                        r: Math.max(thepixel.r * 0.90, 0),
+                        g: Math.max(thepixel.g * 0.90, 0),
+                        b: Math.max(thepixel.b * 0.90, 0)
                     }
-                } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
-                    if ((_x + _y) % 2 && !(_x % 2)) {
-                        thecolor = thecolor_lessless
+
+                    let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
+                    let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
+
+                    let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
+                    let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
+
+                    if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
+                        if (dither_functions[0](_x, _y)) {
+                            thecolor = thecolor_less
+                        }
+                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
+                        if (dither_functions[0](_x, _y)) {
+                            thecolor = thecolor_more
+                        }
+                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
+                        if (dither_functions[1](_x, _y)) {
+                            thecolor = thecolor_lessless
+                        }
+                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
+                        if (dither_functions[1](_x, _y)) {
+                            thecolor = thecolor_moremore
+                        }
                     }
-                } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
-                    if ((_x + _y) % 2 == 0 && !(_x % 2)) {
-                        thecolor = thecolor_moremore
-                    }
-                } 
+                }
 
             }
 
@@ -524,6 +534,7 @@ function update() {
     config.hue = parseInt(document.getElementById('config_hue').value)
     config.live_update = document.getElementById('live_update').checked
     config.show_crosshair = document.getElementById('show_crosshair').checked
+    config.dithering = document.getElementById('dithering').checked
 
     if (config.selected_function == histogramValues) {
         toggleSliderVisibility(true)
@@ -682,6 +693,10 @@ document.getElementById('config_hue').addEventListener('input', (e) => {
 })
 
 document.getElementById('show_crosshair').addEventListener('change', (e) => {
+    update()
+})
+
+document.getElementById('dithering').addEventListener('change', (e) => {
     update()
 })
 
