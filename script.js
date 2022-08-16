@@ -4,7 +4,7 @@ let color_strs = [
     '#eea500', // orange
     '#efea00', // yellow
     '#efefef', // white
-    // '#009900', // green
+    '#009900', // green
 ]
 
 let config = {}
@@ -242,17 +242,14 @@ function histogramValues(pixel, colors) {
 
         if (gray >= from && gray <= to) {
             if (colors[i] == undefined) {
-                console.log('it is undefined')
+                c('color[i] is undefined')
+            } else {
+                return colors[i]
             }
-
-            // console.log('values returning', colors[i])
-            return colors[i]
         }
     }
 
-    let ran = colors[Math.floor(Math.random() * colors.length)]
-    // console.log('values returning random;', ran)
-    return ran
+    return colors[Math.floor(Math.random() * colors.length)]
 }
 
 function saturation(r, g, b) {
@@ -378,20 +375,21 @@ function drawRubiks() {
 
             if (_y * window.data.width + _x > window.data.width * window.data.height) {
                 thecolor = color_strs[Math.floor(Math.random() * color_strs.length)]
+                c("random color")
             } else {
                 let myfunc = config.selected_function;
                 let thepixel = pixelAt(window.data, _x, _y)
 
                 let themorepixel = {
-                    r: Math.min(thepixel.r * 1.05, 256),
-                    g: Math.min(thepixel.g * 1.05, 256),
-                    b: Math.min(thepixel.b * 1.05, 256)
+                    r: Math.min(thepixel.r * 1.05, 255),
+                    g: Math.min(thepixel.g * 1.05, 255),
+                    b: Math.min(thepixel.b * 1.05, 255)
                 }
 
                 let themoremorepixel = {
-                    r: Math.min(thepixel.r * 1.15, 256),
-                    g: Math.min(thepixel.g * 1.15, 256),
-                    b: Math.min(thepixel.b * 1.15, 256)
+                    r: Math.min(thepixel.r * 1.15, 255),
+                    g: Math.min(thepixel.g * 1.15, 255),
+                    b: Math.min(thepixel.b * 1.15, 255)
                 }
 
                 let thelesspixel = {
@@ -416,26 +414,17 @@ function drawRubiks() {
                 let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
 
                 if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
-                    console.log(_x, _y, 'color', thecolor)
-                    console.log('less', thecolor_less)
-
                     if ((_x + _y) % 2) {
                         thecolor = thecolor_less
                     }
-
                 } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
-                    console.log(_x, _y, 'color', thecolor)
-                    console.log('more', thecolor_more)
-
                     if ((_x + _y) % 2 == 0) {
                         thecolor = thecolor_more
                     }
-
                 } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
                     if ((_x + _y) % 2 && !(_x % 2)) {
                         thecolor = thecolor_lessless
                     }
-
                 } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
                     if ((_x + _y) % 2 == 0 && !(_x % 2)) {
                         thecolor = thecolor_moremore
@@ -617,8 +606,8 @@ function buildSliders(colors) {
             value = Math.floor(i * 256 / colors.length)
 
             input.setAttribute('type', 'range')
-            input.setAttribute('min', '1')
-            input.setAttribute('max', '256')
+            input.setAttribute('min', '0')
+            input.setAttribute('max', '255')
             input.setAttribute('value', value)
             input.setAttribute('step', '1')
             input.className = 'histogram_slider'
@@ -719,7 +708,5 @@ document.addEventListener('keydown', (e) => {
             config.cube_current_pos.x = Math.min(config.cube_width - 1, config.cube_current_pos.x + 1)
             update()
         }
-        c(e.key, 'pressed')
-        c(config.cube_current_pos)
     }
 })
