@@ -1,10 +1,10 @@
 let color_strs = [
     '#0000bb', // blue
+    '#009900', // green
     '#bb0000', // red
     '#eea500', // orange
     '#efea00', // yellow
     '#efefef', // white
-    // '#009900', // green
 ]
 
 let config = {}
@@ -388,32 +388,36 @@ function drawRubiks() {
             } else {
                 let myfunc = config.selected_function;
                 let thepixel = pixelAt(window.data, _x, _y)
-                thecolor = pixelToRGB(myfunc(thepixel, config.colors))
+                let color_obj = myfunc(thepixel, config.colors)
+                let hex_color = myfunc(thepixel, color_strs)
+                thecolor = pixelToRGB(color_obj)
 
-                if (config.dithering) {
+                let should_apply = config.dithering_toggles[hex_color]
+
+                if (config.dithering && should_apply) {
                     // todo: refactor
                     let themorepixel = {
-                        r: Math.min(thepixel.r * 1.05, 255),
-                        g: Math.min(thepixel.g * 1.05, 255),
-                        b: Math.min(thepixel.b * 1.05, 255)
-                    }
-
-                    let themoremorepixel = {
-                        r: Math.min(thepixel.r * 1.15, 255),
-                        g: Math.min(thepixel.g * 1.15, 255),
-                        b: Math.min(thepixel.b * 1.15, 255)
+                        r: Math.min(thepixel.r * (1 + config.dithering_percents[0] / 100), 255),
+                        g: Math.min(thepixel.g * (1 + config.dithering_percents[0] / 100), 255),
+                        b: Math.min(thepixel.b * (1 + config.dithering_percents[0] / 100), 255)
                     }
 
                     let thelesspixel = {
-                        r: Math.max(thepixel.r * 0.95, 0),
-                        g: Math.max(thepixel.g * 0.95, 0),
-                        b: Math.max(thepixel.b * 0.95, 0)
+                        r: Math.min(thepixel.r * (1 - config.dithering_percents[1] / 100), 255),
+                        g: Math.min(thepixel.g * (1 - config.dithering_percents[1] / 100), 255),
+                        b: Math.min(thepixel.b * (1 - config.dithering_percents[1] / 100), 255)
+                    }
+
+                    let themoremorepixel = {
+                        r: Math.min(thepixel.r * (1 + config.dithering_percents[2] / 100), 255),
+                        g: Math.min(thepixel.g * (1 + config.dithering_percents[2] / 100), 255),
+                        b: Math.min(thepixel.b * (1 + config.dithering_percents[2] / 100), 255)
                     }
 
                     let thelesslesspixel = {
-                        r: Math.max(thepixel.r * 0.90, 0),
-                        g: Math.max(thepixel.g * 0.90, 0),
-                        b: Math.max(thepixel.b * 0.90, 0)
+                        r: Math.min(thepixel.r * (1 - config.dithering_percents[3] / 100), 255),
+                        g: Math.min(thepixel.g * (1 - config.dithering_percents[3] / 100), 255),
+                        b: Math.min(thepixel.b * (1 - config.dithering_percents[3] / 100), 255)
                     }
 
                     let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
@@ -536,6 +540,18 @@ function update() {
     config.show_crosshair = document.getElementById('show_crosshair').checked
     config.dithering = document.getElementById('dithering').checked
 
+    config.dithering_percents = []
+    config.dithering_percents.push(parseInt(document.getElementById('config_dithering_1').value))
+    config.dithering_percents.push(parseInt(document.getElementById('config_dithering_2').value))
+    config.dithering_percents.push(parseInt(document.getElementById('config_dithering_3').value))
+    config.dithering_percents.push(parseInt(document.getElementById('config_dithering_4').value))
+
+    config.dithering_toggles = {}
+
+    for (let color of color_strs) {
+        config.dithering_toggles[color] = document.getElementById(color).checked
+    }
+
     if (config.selected_function == histogramValues) {
         toggleSliderVisibility(true)
     } else {
@@ -633,6 +649,27 @@ function buildSliders(colors) {
     }
 }
 
+function buildDitheringToggleCheckboxes(colors) {
+    let placeholder = document.getElementById('dithering_toggles_placeholder')
+
+    if (placeholder) {
+        for (let i = 0; i < colors.length; i++) {
+            let input = document.createElement('input')
+
+            input.type = 'checkbox'
+            input.id = colors[i]
+            input.className = 'dithering_toggle_checkbox'
+
+            let label = document.createElement('label')
+            label.htmlFor = colors[i]
+            label.innerText = colors[i]
+
+            placeholder.appendChild(input)
+            placeholder.appendChild(label)
+        }
+    }
+}
+
 function toggleSliderVisibility(show) {
     let placeholder = document.getElementById('histogram_placeholder')
 
@@ -651,6 +688,9 @@ let functions = [
 
 // histogram sliders
 buildSliders(color_strs)
+
+// dithering checkboxes
+buildDitheringToggleCheckboxes(color_strs)
 
 // first draw
 update()
@@ -701,9 +741,12 @@ document.getElementById('dithering').addEventListener('change', (e) => {
 })
 
 document.addEventListener('input', (e) => {
-    if (e.target.className == 'histogram_slider') {
+    if (e.target.classList.contains('histogram_slider')) {
         update_histogram_ranges()
-
+        update()
+    } else if (e.target.classList.contains('dithering_slider')) {
+        update()
+    } else if (e.target.classList.contains('dithering_toggle_checkbox')) {
         update()
     }
 })
