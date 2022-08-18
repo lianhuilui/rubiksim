@@ -52,9 +52,20 @@
     </div>
 
     <div class="flex">
-        SEGMENTS:
+        WIDTH:
         <input style="flex:1" type="range" min="30" max="150" value="54" class="slider" id="tmp_size" step="3">
         <span id="tmp_size_value">54</span>
+    </div>
+
+    <div class="flex">
+        CROP X:
+        <input style="flex: 1" type="range" min="0" max="100" value="0" class="crop_slider" id="crop_x_start" step="1">
+        <input style="flex: 1" type="range" min="0" max="100" value="100" class="crop_slider" id="crop_x_end" step="1">
+    </div>
+    <div class="flex">
+        CROP Y:
+        <input style="flex: 1" type="range" min="0" max="100" value="0" class="crop_slider" id="crop_y_start" step="1">
+        <input style="flex: 1" type="range" min="0" max="100" value="100" class="crop_slider" id="crop_y_end" step="1">
     </div>
 
     <div class="flex">
@@ -86,10 +97,14 @@
 
     <div class="flex">
         DITHERING
-        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider" id="config_dithering_1" step="1">
-        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider" id="config_dithering_2" step="1">
-        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider" id="config_dithering_3" step="1">
-        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider" id="config_dithering_4" step="1">
+        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider"
+            id="config_dithering_1" step="1">
+        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider"
+            id="config_dithering_2" step="1">
+        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider"
+            id="config_dithering_3" step="1">
+        <input style="width: 100%" type="range" min="0" max="10" value="0" class="slider dithering_slider"
+            id="config_dithering_4" step="1">
     </div>
 
     <div class="flex">

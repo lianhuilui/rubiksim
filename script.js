@@ -1,10 +1,16 @@
 let color_strs = [
-    '#0000bb', // blue
-    '#009900', // green
-    '#bb0000', // red
-    '#eea500', // orange
-    '#efea00', // yellow
-    '#efefef', // white
+    // '#0000bb', // blue
+    '#013082',
+    // '#009900', // green
+    '#01B351',
+    // '#bb0000', // red
+    '#BB2328',
+    // '#eea500', // orange
+    '#FE8F25',
+    // '#efea00', // yellow
+    '#F5FF42',
+    // '#efefef', // white
+    '#ECF3F6'
 ]
 
 let config = {}
@@ -22,10 +28,10 @@ for (let i = 0; i < color_strs.length; i++) {
 }
 
 // the max width of the pixelated image
-config.tmp_size = 9
+config.image_width = 9
 
 // how many cubes side by side
-config.cube_width = Math.floor(config.tmp_size / 3)
+config.cube_width = Math.floor(config.image_width / 3)
 
 // how many cubes stacked
 config.cube_height = 10
@@ -64,6 +70,11 @@ config.selected_function = nearestPixelColor
 config.img_url = ''
 
 config.histogram_ranges = []
+
+config.crop_x_start = 0
+config.crop_x_end = 100
+config.crop_y_start = 0
+config.crop_y_end = 100
 
 let canvas = document.getElementById('canvas')
 let ctx = canvas.getContext('2d')
@@ -337,13 +348,19 @@ function drawPreview(callback) {
         let w = img.width
         let h = img.height
 
-        let target_w = config.tmp_size
-        let target_h = Math.floor(h * config.tmp_size / w)
+        let target_w = config.image_width
+        let target_h = Math.floor(h * config.image_width / w)
 
         tmp_canvas.setAttribute('width', target_w)
         tmp_canvas.setAttribute('height', target_h)
 
-        ctx.drawImage(img, 0, 0, target_w, target_h);
+        // todo: crop
+        ctx.drawImage(img,
+            -(config.crop_x_start / 100 * target_w),
+            -(config.crop_y_start / 100 * target_h),
+            target_w + ((100 - config.crop_x_end) / 100 * target_w) + (config.crop_x_start/100 * target_w),
+            target_h + ((100 - config.crop_y_end) / 100 * target_h) + (config.crop_y_start/100 * target_h),
+        );
 
         let image_data = ctx.getImageData(0, 0, target_w, target_h)
         window.data = image_data
@@ -395,7 +412,6 @@ function drawRubiks() {
                 let should_apply = config.dithering_toggles[hex_color]
 
                 if (config.dithering && should_apply) {
-                    // todo: refactor
                     let themorepixel = {
                         r: Math.min(thepixel.r * (1 + config.dithering_percents[0] / 100), 255),
                         g: Math.min(thepixel.g * (1 + config.dithering_percents[0] / 100), 255),
@@ -527,8 +543,8 @@ function c(...args) {
 }
 
 function update() {
-    config.tmp_size = parseInt(document.getElementById('tmp_size').value)
-    config.cube_width = Math.floor(config.tmp_size / 3)
+    config.image_width = parseInt(document.getElementById('tmp_size').value)
+    config.cube_width = Math.floor(config.image_width / 3)
     config.img_url = document.getElementById('img_url').value
     config.selected_function = functions[parseInt(document.getElementById('function').value) % functions.length];
     config.border_color = document.getElementById('black_grid').checked
@@ -547,6 +563,11 @@ function update() {
     config.dithering_percents.push(parseInt(document.getElementById('config_dithering_4').value))
 
     config.dithering_toggles = {}
+
+    config.crop_x_start = parseInt(document.getElementById('crop_x_start').value)
+    config.crop_x_end = parseInt(document.getElementById('crop_x_end').value)
+    config.crop_y_start = parseInt(document.getElementById('crop_y_start').value)
+    config.crop_y_end = parseInt(document.getElementById('crop_y_end').value)
 
     for (let color of color_strs) {
         config.dithering_toggles[color] = document.getElementById(color).checked
@@ -747,6 +768,8 @@ document.addEventListener('input', (e) => {
     } else if (e.target.classList.contains('dithering_slider')) {
         update()
     } else if (e.target.classList.contains('dithering_toggle_checkbox')) {
+        update()
+    } else if (e.target.classList.contains('crop_slider')) {
         update()
     }
 })
