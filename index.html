@@ -15,7 +15,7 @@
         #canvas {
             border: 1px solid red;
             width: 100%;
-            /* image-rendering: pixelated; */
+            image-rendering: pixelated;
         }
 
         #histogram {
@@ -44,76 +44,90 @@
 
 <body>
     <div class="flex">
-        <canvas id="tmp" style="max-height: 40px"></canvas>
-        <div class="wrapper">
-            <input type="text" id="img_url" style="width: 100%"
-                value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYwQfkna746FQeGFYgvv016QBeg1dLmWgu1A&usqp=CAU">
+        <input type="checkbox" name="" id="show_controls">
+        <label for="show_controls">SHOW CONTROLS</label>
+    </div>
+
+    <div id="controls">
+
+        <div class="flex">
+            <canvas id="tmp" style="max-height: 40px"></canvas>
+            <div class="wrapper">
+                <input type="text" id="img_url" style="width: 100%"
+                    value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYwQfkna746FQeGFYgvv016QBeg1dLmWgu1A&usqp=CAU">
+            </div>
         </div>
-    </div>
 
-    <div class="flex">
-        WIDTH:
-        <input style="flex:1" type="range" min="30" max="150" value="54" class="slider" id="tmp_size" step="3">
-        <span id="tmp_size_value">54</span>
-    </div>
+        <div class="flex">
+            WIDTH:
+            <input style="flex:1" type="range" min="3" max="150" value="54" class="slider" id="tmp_size" step="3">
+            <span id="tmp_size_value">54</span>
+        </div>
 
-    <div class="flex">
-        CROP X:
-        <input style="flex: 1" type="range" min="0" max="100" value="0" class="crop_slider" id="crop_x_start" step="1">
-        <input style="flex: 1" type="range" min="0" max="100" value="100" class="crop_slider" id="crop_x_end" step="1">
-    </div>
-    <div class="flex">
-        CROP Y:
-        <input style="flex: 1" type="range" min="0" max="100" value="0" class="crop_slider" id="crop_y_start" step="1">
-        <input style="flex: 1" type="range" min="0" max="100" value="100" class="crop_slider" id="crop_y_end" step="1">
-    </div>
+        <div class="flex">
+            CROP X:
+            <input style="flex: 1" type="range" min="0" max="100" value="0" class="crop_slider" id="crop_x_start"
+                step="1">
+            <input style="flex: 1" type="range" min="0" max="100" value="100" class="crop_slider" id="crop_x_end"
+                step="1">
+        </div>
+        <div class="flex">
+            CROP Y:
+            <input style="flex: 1" type="range" min="0" max="100" value="0" class="crop_slider" id="crop_y_start"
+                step="1">
+            <input style="flex: 1" type="range" min="0" max="100" value="100" class="crop_slider" id="crop_y_end"
+                step="1">
+        </div>
 
-    <div class="flex">
-        <input type="checkbox" id="live_update"> <label for="live_update">LIVE</label>
-        <input type="checkbox" id="show_grid" checked="checked"> <label for="show_grid">GRID</label>
-        <input type="checkbox" id="black_grid" checked="checked"> <label for="black_grid">BLACK</label>
-        <input type="checkbox" id="show_crosshair"> <label for="show_crosshair">CROSSHAIR</label>
-        <input type="checkbox" id="dithering"> <label for="dithering">DITHERING</label>
-        <div>
+        <div class="flex">
+            <input type="checkbox" id="live_update"> <label for="live_update">LIVE</label>
+            <input type="checkbox" id="show_grid" checked="checked"> <label for="show_grid">GRID</label>
+            <input type="checkbox" id="black_grid" checked="checked"> <label for="black_grid">BLACK</label>
+            <input type="checkbox" id="show_crosshair"> <label for="show_crosshair">CROSSHAIR</label>
+            <input type="checkbox" id="dithering"> <label for="dithering">DITHERING</label>
+        </div>
+
+        <div class="flex">
             Function:
             <select id="function">
                 <option value="0">Gray</option>
-                <option value="1">Gray 2</option>
-                <option value="2">Color</option>
-                <option value="3">Color 2</option>
-                <option value="4">Color 3</option>
-                <option value="5">Histogram Ranges</option>
+                <option value="1">Color</option>
+                <option value="2">Color 2</option>
+                <option value="3">Color 3</option>
+                <option value="4">Histogram Ranges</option>
             </select>
         </div>
-    </div>
 
-    <div class="flex">
-        HUE:
-        <input style="width: 100%" type="range" min="1" max="255" value="1" class="slider" id="config_hue" step="1">
+        <div class="flex">
+            HUE:
+            <input style="width: 100%" type="range" min="1" max="10" value="1" class="slider" id="config_hue"
+                step="0.1">
 
-        SAT:
-        <input style="width: 100%" type="range" min="1" max="255" value="10" class="slider" id="config_sat" step="1">
-    </div>
-
-    <div class="flex">
-        DITHERING
-        <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
-            id="config_dithering_1" step="1">
-        <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
-            id="config_dithering_2" step="1">
-        <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
-            id="config_dithering_3" step="1">
-        <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
-            id="config_dithering_4" step="1">
-    </div>
-
-    <div class="flex">
-        <div id="dithering_toggles_placeholder">
-
+            SAT:
+            <input style="width: 100%" type="range" min="1" max="10" value="10" class="slider" id="config_sat"
+                step="0.1">
         </div>
+
+        <div class="flex">
+            DITHERING
+            <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
+                id="config_dithering_1" step="1">
+            <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
+                id="config_dithering_2" step="1">
+            <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
+                id="config_dithering_3" step="1">
+            <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
+                id="config_dithering_4" step="1">
+        </div>
+
+        <div class="flex">
+            <div id="dithering_toggles_placeholder">
+
+            </div>
+        </div>
+        TOTAL CUBES:
+        <span id="cube_count"></span>
     </div>
-    TOTAL CUBES:
-    <span id="cube_count"></span>
     <div class="flex">
         <div class="wrapper">
             <canvas id="canvas"></canvas>
@@ -131,7 +145,12 @@
 
     <div class="flex">
         <div class="wrapper">
-            <canvas id="cube"></canvas>
+            <canvas class="cube" data-index="0"></canvas>
+            <canvas class="cube" data-index="1"></canvas>
+            <canvas class="cube" data-index="2"></canvas>
+            <canvas class="cube" data-index="3"></canvas>
+            <canvas class="cube" data-index="4"></canvas>
+            <canvas class="cube" data-index="5"></canvas>
         </div>
     </div>
 

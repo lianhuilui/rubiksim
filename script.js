@@ -27,6 +27,7 @@ for (let i = 0; i < color_strs.length; i++) {
     config.colors.push({ r, g, b });
 }
 
+// DEFAULT VALUES
 // the max width of the pixelated image
 config.image_width = 9
 
@@ -37,13 +38,13 @@ config.cube_width = Math.floor(config.image_width / 3)
 config.cube_height = 10
 
 // how many pixels to draw each square
-config.square_size = 40
+config.square_size = 10
 
 // how many pixels is the border around square
-config.border_size = 4
+config.border_size = 0
 
 // how many pixels is the gap size between each cube
-config.cube_gap_size = 2
+config.cube_gap_size = 1
 
 // how many pixels is the gap size between each square
 config.square_gap_size = 1
@@ -169,30 +170,6 @@ function nearestPixelGray(pixel, colors) {
         const pixel_avg = getGray(pixel)
 
         diff = Math.abs(color_avg - pixel_avg)
-
-        if (result == null || diff < last_diff) {
-            result = color
-            last_diff = diff
-        }
-    }
-
-    return result
-}
-
-function nearestPixelGray2(pixel, colors) {
-    // find nearest pixel
-    let last_diff = 0
-    let result = null
-
-    for (let i = 0; i < colors.length; i++) {
-        const color = colors[i];
-
-        const color_avg = Math.floor((color.r + color.g + color.b) / 3)
-        const pixel_avg = Math.floor((pixel.r + pixel.g + pixel.b) / 3)
-
-        diff = Math.abs(color_avg - pixel_avg)
-
-        diff = diff * diff
 
         if (result == null || diff < last_diff) {
             result = color
@@ -358,8 +335,8 @@ function drawPreview(callback) {
         ctx.drawImage(img,
             -(config.crop_x_start / 100 * target_w),
             -(config.crop_y_start / 100 * target_h),
-            target_w + ((100 - config.crop_x_end) / 100 * target_w) + (config.crop_x_start/100 * target_w),
-            target_h + ((100 - config.crop_y_end) / 100 * target_h) + (config.crop_y_start/100 * target_h),
+            target_w + ((100 - config.crop_x_end) / 100 * target_w) + (config.crop_x_start / 100 * target_w),
+            target_h + ((100 - config.crop_y_end) / 100 * target_h) + (config.crop_y_start / 100 * target_h),
         );
 
         let image_data = ctx.getImageData(0, 0, target_w, target_h)
@@ -379,6 +356,76 @@ function drawLine(ctx, x, y, x1, y1) {
     ctx.stroke();
 }
 
+function calc_color(_x, _y) {
+
+    let thecolor;
+
+    if (_y * window.data.width + _x > window.data.width * window.data.height) {
+        thecolor = color_strs[Math.floor(Math.random() * color_strs.length)]
+        c("random color")
+    } else {
+        let myfunc = config.selected_function;
+        let thepixel = pixelAt(window.data, _x, _y)
+        let color_obj = myfunc(thepixel, config.colors)
+        let hex_color = myfunc(thepixel, color_strs)
+        thecolor = pixelToRGB(color_obj)
+
+        let should_apply = config.dithering_toggles[hex_color]
+
+        if (config.dithering && should_apply) {
+            let themorepixel = {
+                r: Math.min(thepixel.r * (1 + config.dithering_percents[0] / 100), 255),
+                g: Math.min(thepixel.g * (1 + config.dithering_percents[0] / 100), 255),
+                b: Math.min(thepixel.b * (1 + config.dithering_percents[0] / 100), 255)
+            }
+
+            let thelesspixel = {
+                r: Math.min(thepixel.r * (1 - config.dithering_percents[1] / 100), 255),
+                g: Math.min(thepixel.g * (1 - config.dithering_percents[1] / 100), 255),
+                b: Math.min(thepixel.b * (1 - config.dithering_percents[1] / 100), 255)
+            }
+
+            let themoremorepixel = {
+                r: Math.min(thepixel.r * (1 + config.dithering_percents[2] / 100), 255),
+                g: Math.min(thepixel.g * (1 + config.dithering_percents[2] / 100), 255),
+                b: Math.min(thepixel.b * (1 + config.dithering_percents[2] / 100), 255)
+            }
+
+            let thelesslesspixel = {
+                r: Math.min(thepixel.r * (1 - config.dithering_percents[3] / 100), 255),
+                g: Math.min(thepixel.g * (1 - config.dithering_percents[3] / 100), 255),
+                b: Math.min(thepixel.b * (1 - config.dithering_percents[3] / 100), 255)
+            }
+
+            let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
+            let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
+
+            let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
+            let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
+
+            if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
+                if (dither_functions[0](_x, _y)) {
+                    thecolor = thecolor_less
+                }
+            } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
+                if (dither_functions[0](_x, _y)) {
+                    thecolor = thecolor_more
+                }
+            } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
+                if (dither_functions[1](_x, _y)) {
+                    thecolor = thecolor_lessless
+                }
+            } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
+                if (dither_functions[1](_x, _y)) {
+                    thecolor = thecolor_moremore
+                }
+            }
+        }
+    }
+
+    return thecolor
+}
+
 function drawRubiks() {
 
     // update height
@@ -388,116 +435,33 @@ function drawRubiks() {
     config.width = config.cube_width * 3 * config.square_size
     config.height = config.cube_height * 3 * config.square_size
 
+    // create pixel data
+    window.pixel_data = []
+
     canvas.setAttribute('width', config.width)
     canvas.setAttribute('height', config.height)
 
-    // rubik's
-    for (let x = 0; x < config.width; x += config.square_size) {
-        for (let y = 0; y < config.height; y += config.square_size) {
-            let _x = Math.floor(x / config.square_size)
-            let _y = Math.floor(y / config.square_size)
-
-            let thecolor;
-
-            if (_y * window.data.width + _x > window.data.width * window.data.height) {
-                thecolor = color_strs[Math.floor(Math.random() * color_strs.length)]
-                c("random color")
-            } else {
-                let myfunc = config.selected_function;
-                let thepixel = pixelAt(window.data, _x, _y)
-                let color_obj = myfunc(thepixel, config.colors)
-                let hex_color = myfunc(thepixel, color_strs)
-                thecolor = pixelToRGB(color_obj)
-
-                let should_apply = config.dithering_toggles[hex_color]
-
-                if (config.dithering && should_apply) {
-                    let themorepixel = {
-                        r: Math.min(thepixel.r * (1 + config.dithering_percents[0] / 100), 255),
-                        g: Math.min(thepixel.g * (1 + config.dithering_percents[0] / 100), 255),
-                        b: Math.min(thepixel.b * (1 + config.dithering_percents[0] / 100), 255)
-                    }
-
-                    let thelesspixel = {
-                        r: Math.min(thepixel.r * (1 - config.dithering_percents[1] / 100), 255),
-                        g: Math.min(thepixel.g * (1 - config.dithering_percents[1] / 100), 255),
-                        b: Math.min(thepixel.b * (1 - config.dithering_percents[1] / 100), 255)
-                    }
-
-                    let themoremorepixel = {
-                        r: Math.min(thepixel.r * (1 + config.dithering_percents[2] / 100), 255),
-                        g: Math.min(thepixel.g * (1 + config.dithering_percents[2] / 100), 255),
-                        b: Math.min(thepixel.b * (1 + config.dithering_percents[2] / 100), 255)
-                    }
-
-                    let thelesslesspixel = {
-                        r: Math.min(thepixel.r * (1 - config.dithering_percents[3] / 100), 255),
-                        g: Math.min(thepixel.g * (1 - config.dithering_percents[3] / 100), 255),
-                        b: Math.min(thepixel.b * (1 - config.dithering_percents[3] / 100), 255)
-                    }
-
-                    let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
-                    let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
-
-                    let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
-                    let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
-
-                    if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
-                        if (dither_functions[0](_x, _y)) {
-                            thecolor = thecolor_less
-                        }
-                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
-                        if (dither_functions[0](_x, _y)) {
-                            thecolor = thecolor_more
-                        }
-                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
-                        if (dither_functions[1](_x, _y)) {
-                            thecolor = thecolor_lessless
-                        }
-                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
-                        if (dither_functions[1](_x, _y)) {
-                            thecolor = thecolor_moremore
-                        }
-                    }
-                }
-
-            }
+    for (let x = 0; x < config.cube_width * 3; x++) {
+        window.pixel_data.push([])
+        for (let y = 0; y < config.cube_height * 3; y++) {
+            let thecolor = calc_color(x, y)
+            window.pixel_data[x].push(thecolor)
 
             ctx.fillStyle = thecolor
-            ctx.fillRect(x, y, x + config.square_size, y + config.square_size)
-
+            ctx.fillRect(x * config.square_size,
+                y * config.square_size,
+                x * config.square_size + config.square_size,
+                y * config.square_size + config.square_size)
         }
     }
 
-    let cube = document.getElementById('cube')
-    let size = 50
-
-    if (cube) {
-        cube.setAttribute('width', size * 3)
-        cube.setAttribute('height', size * 3)
-
-        let myfunc = config.selected_function;
-
-        let cube_context = cube.getContext('2d')
-
-        if (config.cube_current_pos && cube) {
-            let pos = config.cube_current_pos
-
-            for (let j = 0; j < 3; j++) {
-                for (let i = 0; i < 3; i++) {
-                    let square_color = pixelToRGB(myfunc(pixelAt(window.data, (pos.x * 3) + i, (pos.y * 3) + j), config.colors))
-
-                    cube_context.fillStyle = square_color
-                    cube_context.fillRect((i) * size, (j) * size, (i + 1) * size, (j + 1) * size)
-                }
-            }
-        }
-    }
+    drawCubes()
 
     if (config.should_draw_grids)
         drawGrids(ctx, config.cube_width, config.cube_height, config.square_size, config.cube_gap_size, config.width, config.height)
 
 }
+
 function drawGrids(ctx, cube_width, cube_height, square_size, cube_gap_size, width, height) {
 
     ctx.lineWidth = config.border_size
@@ -538,6 +502,7 @@ function drawGrids(ctx, cube_width, cube_height, square_size, cube_gap_size, wid
     }
 }
 
+// console log
 function c(...args) {
     console.log(...args)
 }
@@ -550,8 +515,8 @@ function update() {
     config.border_color = document.getElementById('black_grid').checked
         ? '#1f1f1f' : '#efefef'
     config.should_draw_grids = document.getElementById('show_grid').checked
-    config.sat = parseInt(document.getElementById('config_sat').value)
-    config.hue = parseInt(document.getElementById('config_hue').value)
+    config.sat = parseFloat(document.getElementById('config_sat').value)
+    config.hue = parseFloat(document.getElementById('config_hue').value)
     config.live_update = document.getElementById('live_update').checked
     config.show_crosshair = document.getElementById('show_crosshair').checked
     config.dithering = document.getElementById('dithering').checked
@@ -591,7 +556,9 @@ function update() {
     const _callback = function () {
         drawRubiks()
         _update()
+
         if (config.show_crosshair) drawCursor()
+        drawCubes()
         drawHistogram(window.data, histogram)
     }
 
@@ -605,7 +572,7 @@ function drawCursor() {
     let _x = pos.x * size * 3
     let _y = pos.y * size * 3
 
-    ctx.lineWidth = 20
+    ctx.lineWidth = 5
     ctx.strokeStyle = 'red'
     ctx.beginPath()
     ctx.rect(_x, _y, (size * 3), (size * 3))
@@ -616,7 +583,7 @@ function drawCursor() {
     drawLine(ctx, config.width, 0, (size * 3) + _x, _y)
     drawLine(ctx, config.width, config.height, (size * 3) + _x, _y + (size * 3))
 
-    ctx.lineWidth = 6
+    ctx.lineWidth = 2
     ctx.strokeStyle = 'white'
     ctx.beginPath()
     ctx.rect(_x, _y, (size * 3), (size * 3))
@@ -683,7 +650,8 @@ function buildDitheringToggleCheckboxes(colors) {
 
             let label = document.createElement('label')
             label.htmlFor = colors[i]
-            label.innerText = colors[i]
+            label.innerText = '__'
+            label.style.backgroundColor = colors[i]
 
             placeholder.appendChild(input)
             placeholder.appendChild(label)
@@ -697,10 +665,50 @@ function toggleSliderVisibility(show) {
     placeholder.style.display = show ? 'flex' : 'none'
 }
 
+function drawCubes() {
+    let cubes = document.getElementsByClassName('cube');
+
+    for (let cube of cubes) {
+        let index = parseInt(cube.dataset['index']) * 3
+
+        c('index', index)
+
+        let size = 15
+
+        if (cube) {
+            cube.setAttribute('width', size * 3)
+            cube.setAttribute('height', size * 3)
+
+            let cube_context = cube.getContext('2d')
+
+            if (config.cube_current_pos && cube) {
+                let pos = config.cube_current_pos
+
+                for (let j = 0; j < 3; j++) {
+                    for (let i = 0; i < 3; i++) {
+
+                        if (pos.x * 3 + i + index < window.pixel_data.length) {
+                            let square_color = window.pixel_data[pos.x * 3 + i + index][pos.y * 3 + j]
+
+                            cube_context.fillStyle = square_color
+                            cube_context.fillRect((i) * size, (j) * size, (i + 1) * size, (j + 1) * size)
+                        } else {
+                            cube_context.fillStyle = 'black'
+                        }
+
+                        cube_context.fillRect((i) * size, (j) * size, (i + 1) * size, (j + 1) * size)
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+
 let selected = 0
 let functions = [
     nearestPixelGray,
-    nearestPixelGray2,
     nearestPixelColor,
     nearestPixelColor2,
     nearestPixelColor3,
@@ -759,6 +767,14 @@ document.getElementById('show_crosshair').addEventListener('change', (e) => {
 
 document.getElementById('dithering').addEventListener('change', (e) => {
     update()
+})
+
+document.getElementById('show_controls').addEventListener('change', (e) => {
+    if (document.getElementById('show_controls').checked) {
+        document.getElementById('controls').style.display = 'block'
+    } else {
+        document.getElementById('controls').style.display = 'none'
+    }
 })
 
 document.addEventListener('input', (e) => {
