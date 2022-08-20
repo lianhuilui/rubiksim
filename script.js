@@ -1,10 +1,10 @@
 let color_strs = [
     // '#0000bb', // blue
     '#013082',
-    // '#009900', // green
-    '#01B351',
     // '#bb0000', // red
     '#BB2328',
+    // '#009900', // green
+    '#01B351',
     // '#eea500', // orange
     '#FE8F25',
     // '#efea00', // yellow
@@ -671,7 +671,7 @@ function drawCubes() {
     for (let cube of cubes) {
         let index = parseInt(cube.dataset['index']) * 3
 
-        c('index', index)
+        // c('index', index)
 
         let size = 15
 

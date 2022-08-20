@@ -39,6 +39,10 @@
             display: flex;
             flex-direction: column;
         }
+
+        .pixelated {
+            image-rendering: pixelated;
+        }
     </style>
 </head>
 
@@ -114,9 +118,9 @@
                 id="config_dithering_1" step="1">
             <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
                 id="config_dithering_2" step="1">
-            <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
+            <input style="width: 100%" type="range" min="0" max="50" value="0" class="slider dithering_slider"
                 id="config_dithering_3" step="1">
-            <input style="width: 100%" type="range" min="0" max="25" value="0" class="slider dithering_slider"
+            <input style="width: 100%" type="range" min="0" max="50" value="0" class="slider dithering_slider"
                 id="config_dithering_4" step="1">
         </div>
 
@@ -154,7 +158,261 @@
         </div>
     </div>
 
+    <div class="channels flex">
+        <canvas class="pixelated" id="red" style="flex: 1; border:1px solid white"></canvas>
+        <canvas class="pixelated" id="green" style="flex: 1; border:1px solid white"></canvas>
+        <canvas class="pixelated" id="blue" style="flex: 1; border:1px solid white"></canvas>
+    </div>
+
+    <div class="dither1">
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="0" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="1" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="2" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="3" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="4" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="5" data-ditherfunc="0" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="0" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="1" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="2" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="3" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="4" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="5" data-ditherfunc="0" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="0" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="1" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="2" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="3" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="4" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="5" data-ditherfunc="0" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="0" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="1" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="2" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="3" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="4" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="5" data-ditherfunc="0" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="0" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="1" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="2" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="3" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="4" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="5" data-ditherfunc="0" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="0" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="1" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="2" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="3" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="4" data-ditherfunc="0" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="5" data-ditherfunc="0" width="50" height="10"></canvas>
+        </div>
+    </div>
+
+    <div class="dither2">
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="0" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="1" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="2" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="3" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="4" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="0"
+                data-color1="5" data-ditherfunc="1" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="0" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="1" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="2" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="3" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="4" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="1"
+                data-color1="5" data-ditherfunc="1" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="0" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="1" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="2" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="3" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="4" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="2"
+                data-color1="5" data-ditherfunc="1" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="0" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="1" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="2" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="3" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="4" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="3"
+                data-color1="5" data-ditherfunc="1" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="0" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="1" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="2" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="3" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="4" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="4"
+                data-color1="5" data-ditherfunc="1" width="50" height="10"></canvas>
+        </div>
+        <div class="flex">
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="0" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="1" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="2" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="3" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="4" data-ditherfunc="1" width="50" height="10"></canvas>
+            <canvas class="pixelated dither"
+                style="width: 100%; flex: 1; border: 0px solid white; background-color: white" data-color0="5"
+                data-color1="5" data-ditherfunc="1" width="50" height="10"></canvas>
+        </div>
+    </div>
+
     <script src="script.js"></script>
+    <script src="channels.js"></script>
+    <script src="dithertest.js"></script>
 </body>
 
 </html>
