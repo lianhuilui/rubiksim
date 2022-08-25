@@ -158,7 +158,7 @@ function nearestPixelGray(pixel, colors, return_values) {
         const color_avg = getGray(color);
         const pixel_avg = getGray(pixel);
         let diff = Math.abs(color_avg - pixel_avg);
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i;
             last_diff = diff;
         }
@@ -178,7 +178,7 @@ function nearestPixelColor(pixel, colors, return_values) {
         let d_g = Math.abs(color.g - pixel.g);
         let d_b = Math.abs(color.b - pixel.b);
         let diff = d_r + d_b + d_g;
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i;
             last_diff = diff;
         }
@@ -200,7 +200,7 @@ function nearestPixelColor2(pixel, colors, return_values) {
         let diff = (d_r + d_b) ** 2
             + (d_r + d_g) ** 2
             + (d_g + d_b) ** 2;
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i;
             last_diff = diff;
         }
@@ -294,7 +294,7 @@ function nearestPixelColor3(pixel, colors, return_values) {
         // let diff = Math.abs((s + s * 2 * (h / 255)) - (sat + sat * 2 * (hue / 255)))
         // let diff = Math.abs((s / 255 * h * 100) - (sat / 255 * hue * 100))
         let diff = Math.abs((h / config.hue + s / config.sat) - (hue / config.hue + sat / config.sat));
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i;
             last_diff = diff;
         }

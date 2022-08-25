@@ -234,7 +234,7 @@ function nearestPixelGray(pixel: Pixel, colors: Pixel[], return_values: (string 
 
         let diff = Math.abs(color_avg - pixel_avg)
 
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i
             last_diff = diff
         }
@@ -261,7 +261,7 @@ function nearestPixelColor(pixel: Pixel, colors: Pixel[], return_values: (string
 
         let diff = d_r + d_b + d_g
 
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i
             last_diff = diff
         }
@@ -290,7 +290,7 @@ function nearestPixelColor2(pixel: Pixel, colors: Pixel[], return_values: (strin
             + (d_r + d_g) ** 2
             + (d_g + d_b) ** 2
 
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i
             last_diff = diff
         }
@@ -400,7 +400,7 @@ function nearestPixelColor3(pixel: Pixel, colors: Pixel[], return_values: (strin
 
         let diff = Math.abs((h / config.hue + s / config.sat) - (hue / config.hue + sat / config.sat))
 
-        if (result == null || diff < last_diff) {
+        if (result == -1 || diff < last_diff) {
             result = i
             last_diff = diff
         }
