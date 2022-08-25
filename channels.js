@@ -40,4 +40,4 @@ function run_channels() {
     }
 }
 
-setTimeout(run_channels, 100)
+// setTimeout(run_channels, 100)
