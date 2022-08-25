@@ -158,10 +158,14 @@ function getGray(pixel) {
     return Math.floor((pixel.r + pixel.g + pixel.b) / 3)
 }
 
-function nearestPixelGray(pixel, colors) {
+function nearestPixelGray(pixel, colors, return_values) {
     // find nearest pixel
     let last_diff = 0
     let result = null
+
+    if (return_values == undefined) {
+        return_values = colors
+    }
 
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
@@ -172,18 +176,22 @@ function nearestPixelGray(pixel, colors) {
         diff = Math.abs(color_avg - pixel_avg)
 
         if (result == null || diff < last_diff) {
-            result = color
+            result = i
             last_diff = diff
         }
     }
 
-    return result
+    return return_values[result]
 }
 
-function nearestPixelColor(pixel, colors) {
+function nearestPixelColor(pixel, colors, return_values) {
     // find nearest pixel
     let last_diff = 0
     let result = null
+
+    if (return_values == undefined) {
+        return_values = colors
+    }
 
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
@@ -195,18 +203,22 @@ function nearestPixelColor(pixel, colors) {
         let diff = d_r + d_b + d_g
 
         if (result == null || diff < last_diff) {
-            result = color
+            result = i
             last_diff = diff
         }
     }
 
-    return result
+    return return_values[result]
 }
 
-function nearestPixelColor2(pixel, colors) {
+function nearestPixelColor2(pixel, colors, return_values) {
     // find nearest pixel
     let last_diff = 0
     let result = null
+
+    if (return_values == undefined) {
+        return_values = colors
+    }
 
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
@@ -220,18 +232,22 @@ function nearestPixelColor2(pixel, colors) {
             + (d_g + d_b) ** 2
 
         if (result == null || diff < last_diff) {
-            result = color
+            result = i
             last_diff = diff
         }
     }
 
-    return result
+    return return_values[result]
 }
 
-function histogramValues(pixel, colors) {
+function histogramValues(pixel, colors, return_values) {
     let gray = getGray(pixel);
 
     let len = config.histogram_ranges.length;
+
+    if (return_values == undefined) {
+        return_values = colors
+    }
 
     for (let i = 0; i < len; i++) {
         let from = config.histogram_ranges[i].from
@@ -241,7 +257,16 @@ function histogramValues(pixel, colors) {
             if (colors[i] == undefined) {
                 c('color[i] is undefined')
             } else {
-                return colors[i]
+                if (return_values) {
+                    if (return_values !== undefined) {
+                        return return_values[i]
+                    } else {
+                        return colors[i]
+                    }
+                } else {
+                    c('white as a last option')
+                    return '#ffffff'
+                }
             }
         }
     }
@@ -288,10 +313,14 @@ function rgb2hue(r, g, b) {
     return hue * 60; // hue is in [0,6], scale it up
 }
 
-function nearestPixelColor3(pixel, colors) {
+function nearestPixelColor3(pixel, colors, return_values) {
     // find nearest pixel
     let last_diff = 0
     let result = null
+
+    if (return_values == undefined) {
+        return_values = colors
+    }
 
     for (let i = 0; i < colors.length; i++) {
         const color = colors[i];
@@ -309,12 +338,12 @@ function nearestPixelColor3(pixel, colors) {
         let diff = Math.abs((h / config.hue + s / config.sat) - (hue / config.hue + sat / config.sat))
 
         if (result == null || diff < last_diff) {
-            result = color
+            result = i
             last_diff = diff
         }
     }
 
-    return result
+    return return_values[result]
 }
 
 function drawPreview(callback) {
@@ -367,8 +396,10 @@ function calc_color(_x, _y) {
         let myfunc = config.selected_function;
         let thepixel = pixelAt(window.data, _x, _y)
         let color_obj = myfunc(thepixel, config.colors)
-        let hex_color = myfunc(thepixel, color_strs)
+        let hex_color = myfunc(thepixel, config.colors, color_strs)
         thecolor = pixelToRGB(color_obj)
+
+        c('the hex color', hex_color + JSON.stringify(thepixel))
 
         let should_apply = config.dithering_toggles[hex_color]
 
@@ -560,6 +591,10 @@ function update() {
         if (config.show_crosshair) drawCursor()
         drawCubes()
         drawHistogram(window.data, histogram)
+
+        if (run_channels != undefined) {
+            run_channels()
+        }
     }
 
     drawPreview(_callback)

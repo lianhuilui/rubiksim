@@ -26,13 +26,13 @@ function run_channels() {
 
                     let {r, g, b} = pixel
 
-                    _red.fillStyle = `rgb(${r}, ${r}, ${r})`
+                    _red.fillStyle = `rgb(${r}, ${0}, ${0})`
                     _red.fillRect(x, y, 1, 1)
 
-                    _green.fillStyle = `rgb(${g}, ${g}, ${g})`
+                    _green.fillStyle = `rgb(${0}, ${g}, ${0})`
                     _green.fillRect(x, y, 1, 1)
 
-                    _blue.fillStyle = `rgb(${b}, ${b}, ${b})`
+                    _blue.fillStyle = `rgb(${0}, ${0}, ${b})`
                     _blue.fillRect(x, y, 1, 1)
                 }
             }
