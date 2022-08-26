@@ -559,7 +559,13 @@ function drawRubiks() {
 
 }
 
-function drawGrids(ctx, cube_width, cube_height, square_size, cube_gap_size, width, height) {
+function drawGrids(ctx: CanvasRenderingContext2D,
+    cube_width: number,
+    cube_height: number,
+    square_size: number,
+    cube_gap_size: number,
+    width: number,
+    height: number) {
 
     ctx.lineWidth = config.border_size
     ctx.strokeStyle = config.border_color
@@ -600,23 +606,42 @@ function drawGrids(ctx, cube_width, cube_height, square_size, cube_gap_size, wid
 }
 
 // console log
-function c(...args) {
+function c(...args: any[]) {
     console.log(...args)
 }
 
+function intFromEl(el_name: string) {
+    let el = document.getElementById(el_name) as HTMLInputElement
+    return parseInt(el?.value)
+}
+
+function strFromEl(el_name: string) {
+    let el = document.getElementById(el_name) as HTMLInputElement
+    return el?.value
+}
+
+function boolFromCheckbox(el_name: string) {
+    let el = document.getElementById(el_name) as HTMLInputElement
+    return el?.checked
+}
+
+function floatFromEl(el_name: string) {
+    let el = document.getElementById(el_name) as HTMLInputElement
+    return parseFloat(el?.value)
+}
+
 function update() {
-    config.image_width = parseInt(document.getElementById('tmp_size').value)
+    config.image_width = intFromEl('tmp_size')
     config.cube_width = Math.floor(config.image_width / 3)
-    config.img_url = document.getElementById('img_url').value
-    config.selected_function = functions[parseInt(document.getElementById('function').value) % functions.length];
-    config.border_color = document.getElementById('black_grid').checked
-        ? '#1f1f1f' : '#efefef'
-    config.should_draw_grids = document.getElementById('show_grid').checked
-    config.sat = parseFloat(document.getElementById('config_sat').value)
-    config.hue = parseFloat(document.getElementById('config_hue').value)
-    config.live_update = document.getElementById('live_update').checked
-    config.show_crosshair = document.getElementById('show_crosshair').checked
-    config.dithering = document.getElementById('dithering').checked
+    config.img_url = strFromEl('img_url')
+    config.selected_function = functions[intFromEl('function') % functions.length];
+    config.border_color = boolFromCheckbox('black_grid') ? '#1f1f1f' : '#efefef'
+    config.should_draw_grids = boolFromCheckbox('show_grid')
+    config.sat = floatFromEl('config_sat')
+    config.hue = floatFromEl('config_hue')
+    config.live_update = boolFromCheckbox('live_update')
+    config.show_crosshair = boolFromCheckbox('show_crosshair')
+    config.dithering = boolFromCheckbox('dithering')
 
     config.dithering_percents = []
 
@@ -662,9 +687,7 @@ function update() {
         drawCubes()
         drawHistogram(global_image_data, histogram)
 
-        if (run_channels != undefined) {
-            run_channels()
-        }
+        //Todo: check run_channels
     }
 
     drawPreview(_callback)
@@ -810,68 +833,47 @@ function drawCubes() {
 
 }
 
-// hook event handlers for live update
-document.getElementById('tmp_size').addEventListener('input', (e) => {
-    document.getElementById('tmp_size_value').innerHTML = e.target.value
+function hook(el_name: string, event_name: string, callback: (this: HTMLElement, e: Event) => any): void {
+    let el = document.getElementById(el_name) as HTMLInputElement
+
+    el.addEventListener(event_name, callback)
+}
+
+hook('tmp_size', 'input', (e) => {
+    let el = document.getElementById('tmp_size_value') as HTMLSpanElement;
+    el.innerHTML = (e.target as HTMLInputElement).value;
 
     if (config.live_update) {
-        update()
+        update();
     }
 })
 
-document.getElementById('tmp_size').addEventListener('change', (e) => {
-    update()
-})
-
-document.getElementById('show_grid').addEventListener('change', (e) => {
-    update()
-})
-
-document.getElementById('black_grid').addEventListener('change', (e) => {
-    update()
-})
-
-document.getElementById('live_update').addEventListener('change', (e) => {
-    config.live_update = document.getElementById('live_update')
-})
-
-document.getElementById('function').addEventListener('change', (e) => {
-    update()
-})
-
-document.getElementById('config_sat').addEventListener('input', (e) => {
-    update()
-})
-
-document.getElementById('config_hue').addEventListener('input', (e) => {
-    update()
-})
-
-document.getElementById('show_crosshair').addEventListener('change', (e) => {
-    update()
-})
-
-document.getElementById('dithering').addEventListener('change', (e) => {
-    update()
-})
-
-document.getElementById('show_controls').addEventListener('change', (e) => {
-    if (document.getElementById('show_controls').checked) {
-        document.getElementById('controls').style.display = 'block'
+hook('tmp_size', 'change', () => update())
+hook('show_grid', 'change', () => update())
+hook('black_grid', 'change', () => update())
+hook('live_update', 'change', () => { config.live_update = boolFromCheckbox('live_update') })
+hook('function', 'change', () => { update() })
+hook('config_sat', 'input', () => { update() })
+hook('config_hue', 'input', () => { update() })
+hook('show_crosshair', 'change', () => { update() })
+hook('dithering', 'change', () => { update() })
+hook('show_controls', 'change', () => {
+    if ((document.getElementById('show_controls') as HTMLInputElement).checked) {
+        (document.getElementById('controls') as HTMLElement).style.display = 'block'
     } else {
-        document.getElementById('controls').style.display = 'none'
+        (document.getElementById('controls') as HTMLElement).style.display = 'none'
     }
 })
 
 document.addEventListener('input', (e) => {
-    if (e.target.classList.contains('histogram_slider')) {
+    if ((e.target as HTMLElement).classList.contains('histogram_slider')) {
         update_histogram_ranges()
         update()
-    } else if (e.target.classList.contains('dithering_slider')) {
+    } else if ((e.target as HTMLElement).classList.contains('dithering_slider')) {
         update()
-    } else if (e.target.classList.contains('dithering_toggle_checkbox')) {
+    } else if ((e.target as HTMLElement).classList.contains('dithering_toggle_checkbox')) {
         update()
-    } else if (e.target.classList.contains('crop_slider')) {
+    } else if ((e.target as HTMLElement).classList.contains('crop_slider')) {
         update()
     }
 })

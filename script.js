@@ -451,19 +451,34 @@ function drawGrids(ctx, cube_width, cube_height, square_size, cube_gap_size, wid
 function c(...args) {
     console.log(...args);
 }
+function intFromEl(el_name) {
+    let el = document.getElementById(el_name);
+    return parseInt(el === null || el === void 0 ? void 0 : el.value);
+}
+function strFromEl(el_name) {
+    let el = document.getElementById(el_name);
+    return el === null || el === void 0 ? void 0 : el.value;
+}
+function boolFromCheckbox(el_name) {
+    let el = document.getElementById(el_name);
+    return el === null || el === void 0 ? void 0 : el.checked;
+}
+function floatFromEl(el_name) {
+    let el = document.getElementById(el_name);
+    return parseFloat(el === null || el === void 0 ? void 0 : el.value);
+}
 function update() {
-    config.image_width = parseInt(document.getElementById('tmp_size').value);
+    config.image_width = intFromEl('tmp_size');
     config.cube_width = Math.floor(config.image_width / 3);
-    config.img_url = document.getElementById('img_url').value;
-    config.selected_function = functions[parseInt(document.getElementById('function').value) % functions.length];
-    config.border_color = document.getElementById('black_grid').checked
-        ? '#1f1f1f' : '#efefef';
-    config.should_draw_grids = document.getElementById('show_grid').checked;
-    config.sat = parseFloat(document.getElementById('config_sat').value);
-    config.hue = parseFloat(document.getElementById('config_hue').value);
-    config.live_update = document.getElementById('live_update').checked;
-    config.show_crosshair = document.getElementById('show_crosshair').checked;
-    config.dithering = document.getElementById('dithering').checked;
+    config.img_url = strFromEl('img_url');
+    config.selected_function = functions[intFromEl('function') % functions.length];
+    config.border_color = boolFromCheckbox('black_grid') ? '#1f1f1f' : '#efefef';
+    config.should_draw_grids = boolFromCheckbox('show_grid');
+    config.sat = floatFromEl('config_sat');
+    config.hue = floatFromEl('config_hue');
+    config.live_update = boolFromCheckbox('live_update');
+    config.show_crosshair = boolFromCheckbox('show_crosshair');
+    config.dithering = boolFromCheckbox('dithering');
     config.dithering_percents = [];
     config.dithering_percents.push(parseInt(document.getElementById('config_dithering_1').value));
     config.dithering_percents.push(parseInt(document.getElementById('config_dithering_2').value));
@@ -499,9 +514,7 @@ function update() {
             drawCursor();
         drawCubes();
         drawHistogram(global_image_data, histogram);
-        if (run_channels != undefined) {
-            run_channels();
-        }
+        //Todo: check run_channels
     };
     drawPreview(_callback);
 }
@@ -609,41 +622,27 @@ function drawCubes() {
         }
     }
 }
-// hook event handlers for live update
-document.getElementById('tmp_size').addEventListener('input', (e) => {
-    document.getElementById('tmp_size_value').innerHTML = e.target.value;
+function hook(el_name, event_name, callback) {
+    let el = document.getElementById(el_name);
+    el.addEventListener(event_name, callback);
+}
+hook('tmp_size', 'input', (e) => {
+    let el = document.getElementById('tmp_size_value');
+    el.innerHTML = e.target.value;
     if (config.live_update) {
         update();
     }
 });
-document.getElementById('tmp_size').addEventListener('change', (e) => {
-    update();
-});
-document.getElementById('show_grid').addEventListener('change', (e) => {
-    update();
-});
-document.getElementById('black_grid').addEventListener('change', (e) => {
-    update();
-});
-document.getElementById('live_update').addEventListener('change', (e) => {
-    config.live_update = document.getElementById('live_update');
-});
-document.getElementById('function').addEventListener('change', (e) => {
-    update();
-});
-document.getElementById('config_sat').addEventListener('input', (e) => {
-    update();
-});
-document.getElementById('config_hue').addEventListener('input', (e) => {
-    update();
-});
-document.getElementById('show_crosshair').addEventListener('change', (e) => {
-    update();
-});
-document.getElementById('dithering').addEventListener('change', (e) => {
-    update();
-});
-document.getElementById('show_controls').addEventListener('change', (e) => {
+hook('tmp_size', 'change', () => update());
+hook('show_grid', 'change', () => update());
+hook('black_grid', 'change', () => update());
+hook('live_update', 'change', () => { config.live_update = boolFromCheckbox('live_update'); });
+hook('function', 'change', () => { update(); });
+hook('config_sat', 'input', () => { update(); });
+hook('config_hue', 'input', () => { update(); });
+hook('show_crosshair', 'change', () => { update(); });
+hook('dithering', 'change', () => { update(); });
+hook('show_controls', 'change', () => {
     if (document.getElementById('show_controls').checked) {
         document.getElementById('controls').style.display = 'block';
     }
