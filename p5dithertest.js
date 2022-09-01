@@ -18,44 +18,58 @@
         let w = 300;
         let h = 300;
         let image;
+        let alreadyran = false;
+        const xytoindex = (x, y, w) => y * 4 * w + x * 4;
+        const togray = (values) => sketch.round((values[0] + values[1] + values[2]) / 3);
         sketch.setup = () => {
             sketch.createCanvas(w, h);
             sketch.frameRate(1);
-            image = sketch.loadImage('test2.jpg');
+            image = sketch.loadImage('test.jpg');
         };
         sketch.draw = () => {
             image.loadPixels();
-            console.log('height', image.height);
-            console.log('width', image.width);
+            if (alreadyran)
+                return;
+            alreadyran = true;
+            let levels = 1;
+            // console.log('updating upto', upto)
+            // upto++
+            // console.log('now it is upto', upto)
+            const quantize = (x) => sketch.round(x / 255 * levels) * 255 / levels;
             for (let y = 0; y < image.height; y++) {
                 for (let x = 0; x < image.width; x++) {
-                    let index = y * 4 * image.width + x * 4;
-                    if (y < 10) {
-                        image.pixels[index] = 0;
-                        image.pixels[index + 1] = 255;
-                        image.pixels[index + 2] = 255;
-                        image.pixels[index + 3] = 255;
-                    }
-                    if (x < 10) {
-                        image.pixels[index] = 255;
-                        image.pixels[index + 1] = 0;
-                        image.pixels[index + 2] = 255;
-                        image.pixels[index + 3] = 255;
-                    }
+                    let index = xytoindex(x, y, image.width);
                     let red = image.pixels[index];
                     let green = image.pixels[index + 1];
                     let blue = image.pixels[index + 2];
-                    let r = sketch.round(red / 255) * 255;
-                    let g = sketch.round(green / 255) * 255;
-                    let b = sketch.round(blue / 255) * 255;
-                    // sketch.set(x, y, sketch.color(r, g, b))
-                    image.pixels[index] = r;
-                    image.pixels[index + 1] = g;
-                    image.pixels[index + 2] = b;
+                    // let gray = (red + green + blue) / 3
+                    let old_pixel = togray(image.get(x, y));
+                    // pseudo code for dithering
+                    // old pixel = pixel at (x,y)
+                    // new pixel  = find closest color of old pixel
+                    // quant error = old pixel - new pixel
+                    // pixel at (x + 1, y    ) = pixel (x + 1, y    ) + quant error * 7 / 16
+                    // pixel at (x - 1, y + 1) = pixel (x - 1, y + 1) + quant error * 3 / 16
+                    // pixel at (x    , y + 1) = pixel (x    , y + 1) + quant error * 5 / 16
+                    // pixel at (x + 1, y + 1) = pixel (x + 1, y + 1) + quant error * 1 / 16
+                    // let old_pixel = image.pixels[index]
+                    let new_pixel = quantize(old_pixel);
+                    image.set(x, y, new_pixel);
+                    let quant_error = old_pixel - new_pixel;
+                    image.set(x + 1, y, sketch.round(togray(image.get(x + 1, y)) + quant_error * 7 / 16.0));
+                    image.set(x - 1, y + 1, sketch.round(togray(image.get(x - 1, y + 1)) + quant_error * 3 / 16.0));
+                    image.set(x, y + 1, sketch.round(togray(image.get(x, y + 1)) + quant_error * 5 / 16.0));
+                    image.set(x + 1, y + 1, sketch.round(togray(image.get(x + 1, y + 1)) + quant_error * 1 / 16.0));
+                    // let r = sketch.round(red / 255) * 255
+                    // let g = sketch.round(green / 255) * 255
+                    // let b = sketch.round(blue / 255) * 255
+                    // image.pixels[index] = r
+                    // image.pixels[index + 1] = g
+                    // image.pixels[index + 2] = b
+                    image.updatePixels();
                 }
             }
             image.updatePixels();
-            sketch.background('red');
             sketch.image(image, 0, 0);
         };
     };

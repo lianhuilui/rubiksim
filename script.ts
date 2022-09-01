@@ -93,6 +93,7 @@ class Config {
     crop_y_end: number = 100;
 
     dithering: boolean = false
+    dithering_fs: boolean = false
     dithering_toggles: Dictionary<boolean> = {}
     dithering_percents: number[] = []
 
@@ -118,6 +119,9 @@ let histogram: HTMLCanvasElement
 
 let global_image_data: ImageData
 let window_pixel_data: string[][]
+
+// for floyd steinberg dithering algo
+let quant_error_array: Pixel[][]
 
 let selected: number = 0
 const functions = [
@@ -448,6 +452,30 @@ function drawLine(ctx: CanvasRenderingContext2D, x: number, y: number, x1: numbe
     ctx.stroke();
 }
 
+function pixelDiff(lhs: Pixel, rhs: Pixel): Pixel {
+    return {
+        r: lhs.r - rhs.r,
+        g: lhs.g - rhs.g,
+        b: lhs.b - rhs.b
+    }
+}
+
+function pixelAdd(lhs: Pixel, rhs: Pixel): Pixel {
+    return {
+        r: lhs.r + rhs.r,
+        g: lhs.g + rhs.g,
+        b: lhs.b + rhs.b
+    }
+}
+
+function pixelMultiply(lhs: Pixel, value: number): Pixel {
+    return {
+        r: lhs.r * value,
+        g: lhs.g * value,
+        b: lhs.b * value
+    }
+}
+
 function calc_color(_x: number, _y: number) {
 
     let thecolor;
@@ -459,59 +487,113 @@ function calc_color(_x: number, _y: number) {
         let myfunc = config.selected_function;
         let thepixel = pixelAt(global_image_data, _x, _y)
         let color_obj = myfunc(thepixel, config.colors)
-        let hex_color = myfunc(thepixel, config.colors, color_strs)
         thecolor = pixelToRGB(color_obj)
 
-        c('the hex color', hex_color + JSON.stringify(thepixel))
+        let hex_color = myfunc(thepixel, config.colors, color_strs)
 
-        let should_apply = config.dithering_toggles[hex_color]
+        if (config.dithering) {
+            if (config.dithering_fs) {
 
-        if (config.dithering && should_apply) {
-            let themorepixel = {
-                r: Math.min(thepixel.r * (1 + config.dithering_percents[0] / 100), 255),
-                g: Math.min(thepixel.g * (1 + config.dithering_percents[0] / 100), 255),
-                b: Math.min(thepixel.b * (1 + config.dithering_percents[0] / 100), 255)
-            }
+                if (quant_error_array == undefined || (_x == 0 && _y == 0)) {
+                    quant_error_array = []
+                    for (let x = 0; x < config.cube_width * 3; x++) {
+                        quant_error_array.push([])
+                        for (let y = 0; y < config.cube_height * 3; y++) {
+                            quant_error_array[x].push({ r: 0, g: 0, b: 0 })
+                        }
+                    }
 
-            let thelesspixel = {
-                r: Math.min(thepixel.r * (1 - config.dithering_percents[1] / 100), 255),
-                g: Math.min(thepixel.g * (1 - config.dithering_percents[1] / 100), 255),
-                b: Math.min(thepixel.b * (1 - config.dithering_percents[1] / 100), 255)
-            }
-
-            let themoremorepixel = {
-                r: Math.min(thepixel.r * (1 + config.dithering_percents[2] / 100), 255),
-                g: Math.min(thepixel.g * (1 + config.dithering_percents[2] / 100), 255),
-                b: Math.min(thepixel.b * (1 + config.dithering_percents[2] / 100), 255)
-            }
-
-            let thelesslesspixel = {
-                r: Math.min(thepixel.r * (1 - config.dithering_percents[3] / 100), 255),
-                g: Math.min(thepixel.g * (1 - config.dithering_percents[3] / 100), 255),
-                b: Math.min(thepixel.b * (1 - config.dithering_percents[3] / 100), 255)
-            }
-
-            let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
-            let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
-
-            let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
-            let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
-
-            if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
-                if (dither_functions[0](_x, _y)) {
-                    thecolor = thecolor_less
+                    console.log('built the errorarray')
                 }
-            } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
-                if (dither_functions[0](_x, _y)) {
-                    thecolor = thecolor_more
+
+                let old_pixel = pixelAt(global_image_data, _x, _y)
+
+                // todo: apply quant error here to old_pixel // done
+
+                old_pixel = pixelAdd(old_pixel, quant_error_array[_x][_y])
+
+                let new_pixel = myfunc(old_pixel, config.colors)
+
+                thecolor = pixelToRGB(new_pixel)
+
+                let quant_error = pixelDiff(old_pixel, new_pixel)
+
+                if (_x < quant_error_array.length - 1) {
+                    quant_error_array[_x + 1][_y] = pixelAdd(quant_error_array[_x + 1][_y], pixelMultiply(quant_error, 7 / 16))
                 }
-            } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
-                if (dither_functions[1](_x, _y)) {
-                    thecolor = thecolor_lessless
+
+                if (_y < quant_error_array[_x].length - 1) {
+                    if (_x > 0) {
+                        quant_error_array[_x - 1][_y + 1] = pixelAdd(quant_error_array[_x - 1][_y + 1], pixelMultiply(quant_error, 3 / 16))
+                    }
+
+                    quant_error_array[_x][_y + 1] = pixelAdd(quant_error_array[_x][_y + 1], pixelMultiply(quant_error, 5 / 16))
+
+                    if (_x < quant_error_array.length - 1) {
+                        quant_error_array[_x + 1][_y + 1] = pixelAdd(quant_error_array[_x + 1][_y + 1], pixelMultiply(quant_error, 1 / 16))
+                    }
                 }
-            } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
-                if (dither_functions[1](_x, _y)) {
-                    thecolor = thecolor_moremore
+
+                // pseudo code for dithering
+                // old pixel = pixel at (x,y)
+                // new pixel  = find closest color of old pixel
+                // quant error = old pixel - new pixel
+                // pixel at (x + 1, y    ) = pixel (x + 1, y    ) + quant error * 7 / 16
+                // pixel at (x - 1, y + 1) = pixel (x - 1, y + 1) + quant error * 3 / 16
+                // pixel at (x    , y + 1) = pixel (x    , y + 1) + quant error * 5 / 16
+                // pixel at (x + 1, y + 1) = pixel (x + 1, y + 1) + quant error * 1 / 16
+
+            } else {
+                let should_apply_my_dithering = config.dithering_toggles[hex_color]
+
+                if (should_apply_my_dithering) {
+                    let themorepixel = {
+                        r: Math.min(thepixel.r * (1 + config.dithering_percents[0] / 100), 255),
+                        g: Math.min(thepixel.g * (1 + config.dithering_percents[0] / 100), 255),
+                        b: Math.min(thepixel.b * (1 + config.dithering_percents[0] / 100), 255)
+                    }
+
+                    let thelesspixel = {
+                        r: Math.min(thepixel.r * (1 - config.dithering_percents[1] / 100), 255),
+                        g: Math.min(thepixel.g * (1 - config.dithering_percents[1] / 100), 255),
+                        b: Math.min(thepixel.b * (1 - config.dithering_percents[1] / 100), 255)
+                    }
+
+                    let themoremorepixel = {
+                        r: Math.min(thepixel.r * (1 + config.dithering_percents[2] / 100), 255),
+                        g: Math.min(thepixel.g * (1 + config.dithering_percents[2] / 100), 255),
+                        b: Math.min(thepixel.b * (1 + config.dithering_percents[2] / 100), 255)
+                    }
+
+                    let thelesslesspixel = {
+                        r: Math.min(thepixel.r * (1 - config.dithering_percents[3] / 100), 255),
+                        g: Math.min(thepixel.g * (1 - config.dithering_percents[3] / 100), 255),
+                        b: Math.min(thepixel.b * (1 - config.dithering_percents[3] / 100), 255)
+                    }
+
+                    let thecolor_less = pixelToRGB(myfunc(thelesspixel, config.colors))
+                    let thecolor_more = pixelToRGB(myfunc(themorepixel, config.colors))
+
+                    let thecolor_lessless = pixelToRGB(myfunc(thelesslesspixel, config.colors))
+                    let thecolor_moremore = pixelToRGB(myfunc(themoremorepixel, config.colors))
+
+                    if (JSON.stringify(thecolor) != JSON.stringify(thecolor_less)) {
+                        if (dither_functions[0](_x, _y)) {
+                            thecolor = thecolor_less
+                        }
+                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_more)) {
+                        if (dither_functions[0](_x, _y)) {
+                            thecolor = thecolor_more
+                        }
+                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_lessless)) {
+                        if (dither_functions[1](_x, _y)) {
+                            thecolor = thecolor_lessless
+                        }
+                    } else if (JSON.stringify(thecolor) != JSON.stringify(thecolor_moremore)) {
+                        if (dither_functions[1](_x, _y)) {
+                            thecolor = thecolor_moremore
+                        }
+                    }
                 }
             }
         }
@@ -642,6 +724,7 @@ function update() {
     config.live_update = boolFromCheckbox('live_update')
     config.show_crosshair = boolFromCheckbox('show_crosshair')
     config.dithering = boolFromCheckbox('dithering')
+    config.dithering_fs = boolFromCheckbox('dithering_floyd_steinberg')
 
     config.dithering_percents = []
 
@@ -857,6 +940,7 @@ hook('config_sat', 'input', () => { update() })
 hook('config_hue', 'input', () => { update() })
 hook('show_crosshair', 'change', () => { update() })
 hook('dithering', 'change', () => { update() })
+hook('dithering_floyd_steinberg', 'change', () => { update() })
 hook('show_controls', 'change', () => {
     if ((document.getElementById('show_controls') as HTMLInputElement).checked) {
         (document.getElementById('controls') as HTMLElement).style.display = 'block'
