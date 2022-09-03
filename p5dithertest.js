@@ -1,13 +1,13 @@
 "use strict";
 (function () {
     let sketch1 = (sketch) => {
-        let w = 300;
-        let h = 300;
+        let w = 200;
+        let h = 200;
         let image;
         sketch.setup = () => {
-            sketch.createCanvas(w, h);
+            let canvas = sketch.createCanvas(w, h);
             sketch.frameRate(1);
-            image = sketch.loadImage('test.jpg');
+            image = sketch.loadImage('gray.png');
         };
         sketch.draw = () => {
             sketch.background('black');
@@ -15,16 +15,17 @@
         };
     };
     let sketch2 = (sketch) => {
-        let w = 300;
-        let h = 300;
+        let w = 200;
+        let h = 200;
         let image;
         let alreadyran = false;
         const xytoindex = (x, y, w) => y * 4 * w + x * 4;
         const togray = (values) => sketch.round((values[0] + values[1] + values[2]) / 3);
         sketch.setup = () => {
             sketch.createCanvas(w, h);
-            sketch.frameRate(1);
-            image = sketch.loadImage('test.jpg');
+            sketch.setAttributes('antialias', false);
+            sketch.frameRate(24);
+            image = sketch.loadImage('gray.png');
         };
         sketch.draw = () => {
             image.loadPixels();
@@ -55,7 +56,7 @@
                     // let old_pixel = image.pixels[index]
                     let new_pixel = quantize(old_pixel);
                     image.set(x, y, new_pixel);
-                    let quant_error = old_pixel - new_pixel;
+                    let quant_error = (old_pixel - new_pixel);
                     image.set(x + 1, y, sketch.round(togray(image.get(x + 1, y)) + quant_error * 7 / 16.0));
                     image.set(x - 1, y + 1, sketch.round(togray(image.get(x - 1, y + 1)) + quant_error * 3 / 16.0));
                     image.set(x, y + 1, sketch.round(togray(image.get(x, y + 1)) + quant_error * 5 / 16.0));

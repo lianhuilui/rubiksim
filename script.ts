@@ -1,4 +1,4 @@
-let color_strs = [
+let realistic_rubiks_colors = [
     // '#0000bb', // blue
     '#013082',
     // '#bb0000', // red
@@ -12,6 +12,67 @@ let color_strs = [
     // '#efefef', // white
     '#ECF3F6'
 ]
+
+let realistic_rubiks_colors_no_green = [
+    // '#0000bb', // blue
+    '#013082',
+    // '#bb0000', // red
+    '#BB2328',
+    // '#009900', // green
+    // '#01B351',
+    // '#eea500', // orange
+    '#FE8F25',
+    // '#efea00', // yellow
+    '#F5FF42',
+    // '#efefef', // white
+    '#ECF3F6'
+]
+
+let black_n_white = [
+    '#ffffff',
+    '#000000'
+]
+
+let cymk = [
+    '#ffffff',
+    '#ff00ff',
+    '#00ffff',
+    '#ffff00',
+    '#000000'
+]
+
+let rgb = [
+    '#ffffff',
+    '#ff0000',
+    '#00ff00',
+    '#0000ff',
+]
+
+let rgbk = [
+    '#ffffff',
+    '#ff0000',
+    '#00ff00',
+    '#0000ff',
+    '#000000'
+]
+
+let rgbcmyk = [
+    '#ffffff',
+    '#ff0000',
+    '#00ff00',
+    '#0000ff',
+    '#ff00ff',
+    '#00ffff',
+    '#ffff00',
+    '#000000'
+]
+
+let color_strs = realistic_rubiks_colors
+
+// color_strs = rgbcmyk
+// color_strs = black_n_white
+// color_strs = rgb
+// color_strs = cymk
 
 type Pixel = {
     r: number,
@@ -332,9 +393,16 @@ function histogramValues(pixel: Pixel, colors: Pixel[], return_values: (string |
                 }
             }
         }
+        // console.log('gray', gray, 'from', from, 'to', to)
+
     }
 
-    return colors[Math.floor(Math.random() * colors.length)]
+    console.log('gray', gray)
+    console.log('hitting end of function')
+    console.log('returning', 'colors[0]', colors[0])
+    // return '#ffffff'
+    return colors[0]
+    // return colors[Math.floor(Math.random() * colors.length)]
 }
 
 function saturation(pixel: Pixel) {
@@ -476,6 +544,30 @@ function pixelMultiply(lhs: Pixel, value: number): Pixel {
     }
 }
 
+function numberclamp(x: number, min: number, max: number): number {
+    if (min > max) {
+        return numberclamp(x, max, min)
+    }
+    return Math.min(Math.max(x, min), max)
+}
+
+function pixelclamp(pixel: Pixel): Pixel {
+    return {
+        r: numberclamp(pixel.r, 0, 255 * 3),
+        g: numberclamp(pixel.g, 0, 255 * 3),
+        b: numberclamp(pixel.b, 0, 255 * 3),
+    }
+}
+
+function colorObjectToHex(color: Pixel) {
+
+    return '#' +
+        color.r.toString(16).padStart(2, '0') +
+        color.g.toString(16).padStart(2, '0') +
+        color.b.toString(16).padStart(2, '0')
+
+}
+
 function calc_color(_x: number, _y: number) {
 
     let thecolor;
@@ -487,9 +579,10 @@ function calc_color(_x: number, _y: number) {
         let myfunc = config.selected_function;
         let thepixel = pixelAt(global_image_data, _x, _y)
         let color_obj = myfunc(thepixel, config.colors)
+
         thecolor = pixelToRGB(color_obj)
 
-        let hex_color = myfunc(thepixel, config.colors, color_strs)
+        let hex_color = colorObjectToHex(color_obj)
 
         if (config.dithering) {
             if (config.dithering_fs) {
@@ -506,11 +599,24 @@ function calc_color(_x: number, _y: number) {
                     console.log('built the errorarray')
                 }
 
+                let limit: number = document.getElementById('error_limit')?.value as number
+
+                if (!(((_y * config.cube_width * 3) + _x) < limit)) {
+                    let augmented_pixel = pixelAdd(thepixel, quant_error_array[_x][_y])
+                    // console.log('cutting it short')
+                    return pixelToRGB(augmented_pixel)
+                }
+
                 let old_pixel = pixelAt(global_image_data, _x, _y)
 
                 // todo: apply quant error here to old_pixel // done
 
-                old_pixel = pixelAdd(old_pixel, quant_error_array[_x][_y])
+                if (window.clamp) {
+                    old_pixel = pixelAdd(old_pixel, pixelclamp(quant_error_array[_x][_y]))
+                } else {
+                    old_pixel = pixelAdd(old_pixel, quant_error_array[_x][_y])
+                }
+
 
                 let new_pixel = myfunc(old_pixel, config.colors)
 
@@ -713,6 +819,9 @@ function floatFromEl(el_name: string) {
 }
 
 function update() {
+
+    document.getElementById('error_limit')?.setAttribute('max', config.cube_width * config.cube_height * 9)
+
     config.image_width = intFromEl('tmp_size')
     config.cube_width = Math.floor(config.image_width / 3)
     config.img_url = strFromEl('img_url')

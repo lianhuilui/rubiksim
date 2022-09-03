@@ -1,17 +1,17 @@
 (function () {
     let sketch1 = (sketch: p5) => {
 
-        let w = 300
-        let h = 300
+        let w = 200
+        let h = 200
 
         let image: p5.Image;
 
         sketch.setup = () => {
-            sketch.createCanvas(w, h)
+            let canvas = sketch.createCanvas(w, h)
 
             sketch.frameRate(1)
 
-            image = sketch.loadImage('test.jpg')
+            image = sketch.loadImage('gray.png')
         }
 
         sketch.draw = () => {
@@ -22,8 +22,8 @@
 
     let sketch2 = (sketch: p5) => {
 
-        let w = 300
-        let h = 300
+        let w = 200
+        let h = 200
 
         let image: p5.Image;
 
@@ -35,9 +35,11 @@
         sketch.setup = () => {
             sketch.createCanvas(w, h)
 
-            sketch.frameRate(1)
+            sketch.setAttributes('antialias', false)
 
-            image = sketch.loadImage('test.jpg')
+            sketch.frameRate(24)
+
+            image = sketch.loadImage('gray.png')
         }
 
         sketch.draw = () => {
@@ -83,7 +85,7 @@
 
                     image.set(x, y, new_pixel)
 
-                    let quant_error = old_pixel - new_pixel
+                    let quant_error = (old_pixel - new_pixel)
 
                     image.set(x + 1, y, sketch.round(togray(image.get(x + 1, y)) + quant_error * 7 / 16.0))
                     image.set(x - 1, y + 1, sketch.round(togray(image.get(x - 1, y + 1)) + quant_error * 3 / 16.0))
