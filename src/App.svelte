@@ -8,13 +8,89 @@
   let image_loaded = false;
 
   let pallettes = [
+    { name: "gray", colors: "#000,#888,#fff" },
+    {
+      name: "grays",
+      colors:
+        "#000,#111,#222,#333,#444,#555,#666,#777,#999,#aaa,#bbb,#ccc,#ddd,#eee,#fff",
+    },
     { name: "rgb", colors: "#f00,#0f0,#00f" },
     { name: "cmyk", colors: "#000,#0ff,#f0f,#ff0" },
     { name: "b&w", colors: "#000,#fff" },
   ];
 
+  function pixelDiff(lhs, rhs) {
+    return {
+      r: lhs.r - rhs.r,
+      g: lhs.g - rhs.g,
+      b: lhs.b - rhs.b,
+    };
+  }
+
+  let hexToRgb = function (hex) {
+    if (hex.length == 4) {
+      let [a, b, c, d] = hex.split("");
+
+      hex = "#" + b + b + c + c + d + d;
+    }
+
+    let r = parseInt(hex.substring(1, 3), 16);
+    let g = parseInt(hex.substring(3, 5), 16);
+    let b = parseInt(hex.substring(5, 7), 16);
+
+    return { r, g, b };
+  };
+
+  let RgbToHex = function (rgb) {
+    return (
+      "#" +
+      rgb.r.toString(16).padStart(2, "0") +
+      rgb.g.toString(16).padStart(2, "0") +
+      rgb.b.toString(16).padStart(2, "0")
+    );
+  };
+
+  let RgbGrayValue = function (rgb) {
+    return Math.floor((rgb.r + rgb.g + rgb.b) / 3);
+  };
+
+  let Rgb2Gray = function (rgb) {
+    let gray = RgbGrayValue(rgb);
+
+    return {
+      r: gray,
+      g: gray,
+      b: gray,
+    };
+  };
+
+  let nearestPixel = function (rgb, pallette) {
+    let colors = pallette.split(",");
+    let ans = colors[0];
+    let diff = null;
+
+    colors.forEach((color, i) => {
+      let _ = hexToRgb(color);
+
+      let pixel_diff = pixelDiff(_, rgb);
+
+      let d_r = Math.abs(pixel_diff.r);
+      let d_g = Math.abs(pixel_diff.g);
+      let d_b = Math.abs(pixel_diff.b);
+
+      let _diff = d_r + d_b + d_g
+
+      if (diff == null || diff > _diff) {
+        diff = _diff;
+        ans = _;
+      }
+    });
+
+    return ans;
+  };
+
   let config = {
-    pixelated: false,
+    pixelated: true,
     width: 0,
     max_width: 999,
     show_grid: false,
@@ -35,16 +111,14 @@
     show_debug: false,
     resizedwidth: 0,
     resizedheight: 0,
+    canvaswidth: 100,
+    canvasheight: 100,
   };
 
   /* bound variables */
   let canvas;
   let resized_canvas;
-
-  let imageloaded = false;
-
-  let canvaswidth = 100;
-  let canvasheight = 100;
+  let output_canvas;
 
   let handleDrop = function (e) {
     e.preventDefault();
@@ -89,14 +163,13 @@
     originalImage = new Image();
 
     originalImage.onload = async function () {
-      canvasheight = originalImage.height;
-      canvaswidth = originalImage.width;
+      ui.canvasheight = originalImage.height;
+      ui.canvaswidth = originalImage.width;
 
-      config.width = Math.min(99, canvaswidth);
-      config.max_width = Math.min(canvaswidth, 999);
+      config.width = Math.min(99, ui.canvaswidth);
+      config.max_width = Math.min(ui.canvaswidth, 999);
 
       image_loaded = true;
-      imageloaded = true;
 
       await tick();
       ctx.drawImage(
@@ -127,18 +200,41 @@
     if (config.width && image_loaded && originalImage) {
       let ctx = resized_canvas.getContext("2d");
 
-      let height = (canvasheight/canvaswidth) * config.width;
-      ui.resizedwidth = config.width;
-      ui.resizedheight = height;
+      let height = (ui.canvasheight / ui.canvaswidth) * config.width;
+      ui.resizedwidth = parseInt(config.width);
+      ui.resizedheight = parseInt(height);
 
       await tick();
-      ctx.drawImage(
-        originalImage,
+
+      ctx.drawImage(originalImage, 0, 0, ui.resizedwidth, ui.resizedheight);
+
+      await tick();
+      let image_data = ctx.getImageData(
         0,
         0,
-        parseInt(ui.resizedwidth),
-        parseInt(ui.resizedheight)
+        ui.resizedwidth,
+        ui.resizedheight
       );
+
+      let output = output_canvas.getContext("2d");
+
+      for (let y = 0; y < image_data.height; y++) {
+        for (let x = 0; x < image_data.width; x++) {
+          let i = (y * ui.resizedwidth + x) * 4;
+
+          let r = image_data.data[i + 0];
+          let g = image_data.data[i + 1];
+          let b = image_data.data[i + 2];
+          let a = image_data.data[i + 3];
+
+          let pixel = { r, g, b };
+
+          let np = nearestPixel(pixel, config.pallette);
+
+          output.fillStyle = RgbToHex(np);
+          output.fillRect(x, y, x + 1, y + 1);
+        }
+      }
     }
   });
 </script>
@@ -274,8 +370,8 @@
               class:shown={image_loaded}
               class:pixelated={config.pixelated}
               id="canvas"
-              width={canvaswidth}
-              height={canvasheight}
+              width={ui.canvaswidth}
+              height={ui.canvasheight}
               bind:this={canvas}
             />
             <canvas
@@ -286,10 +382,18 @@
               height={ui.resizedheight}
               bind:this={resized_canvas}
             />
+            <canvas
+              class:shown={image_loaded}
+              class:pixelated={config.pixelated}
+              id="output_canvas"
+              width={ui.resizedwidth}
+              height={ui.resizedheight}
+              bind:this={output_canvas}
+            />
           </div>
         </div>
 
-        {#if !imageloaded && ui.hovering}
+        {#if !image_loaded && ui.hovering}
           <div
             class="rounded-lg border-solid border-2 p-8 text-white text-center m-auto w-fit"
           >
@@ -314,7 +418,6 @@
   }
   #resized_canvas {
     margin: 0 auto;
-    /* width: 100%; */
   }
   #canvas.shown {
     display: block;
@@ -324,7 +427,6 @@
   }
   canvas {
     border: 1px solid black;
-    max-width: 100%;
-    max-height: 100%;
+    width: 100vw;
   }
 </style>
