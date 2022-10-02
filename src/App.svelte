@@ -114,6 +114,7 @@
     gray_scale_nearest_pixel: false,
     grid_size: 2,
     pallette: pallettes[0].colors,
+    individual_pallette_colors: [],
     debug_range: 100,
   };
 
@@ -205,6 +206,12 @@
 
   let setPallette = function (color) {
     config.pallette = color;
+
+    config.individual_pallette_colors = [];
+
+    color.split(",").forEach((value) => {
+      config.individual_pallette_colors.push({ color: value, on: true });
+    });
   };
 
   let toggleUI = function (str) {
@@ -220,8 +227,9 @@
       let ctx = output_canvas.getContext("2d");
 
       let height = (ui.canvasheight / ui.canvaswidth) * config.width;
-      ui.resizedwidth = parseInt(config.width);
-      ui.resizedheight = parseInt(height);
+
+      ui.resizedwidth = parseInt(config.width / 3) * 3;
+      ui.resizedheight = parseInt(height / 3) * 3;
 
       await tick();
 
@@ -274,7 +282,16 @@
 
           let pixel = { r, g, b };
 
-          let np = nearestPixel(pixel, config.pallette);
+          let pallette = config.individual_pallette_colors
+            .filter((color) => color.on)
+            .map((color) => color.color)
+            .join(",");
+
+          window.p = config.individual_pallette_colors;
+
+          if (i == 0) console.log("ap", pallette);
+
+          let np = nearestPixel(pixel, pallette);
 
           // quantization
           image_data.data[i] = np.r;
@@ -517,11 +534,26 @@
           {/each}
         </div>
       </div>
+      <div class="flex">
+        {#each config.individual_pallette_colors as c}
+          <Toggle
+            bind:checked={c.on}
+            text={c.color}
+            bgcolor={c.on ? c.color : "white"}
+          />
+        {/each}
+      </div>
     {/if}
 
     {#if ui.show_debug}
       <p>debug: {debug}</p>
-      <input type="range" bind:value={config.debug_range} min="0" max="100" step="0.1" />
+      <input
+        type="range"
+        bind:value={config.debug_range}
+        min="0"
+        max="100"
+        step="0.1"
+      />
     {/if}
 
     <div class="bg-green-800 grow justify-center">
@@ -573,6 +605,12 @@
         {/if}
       </div>
     </div>
+
+    {#if ui.resizedheight && ui.resizedwidth}
+      Image Size: {ui.resizedwidth} x {ui.resizedheight} = {ui.resizedwidth *
+        ui.resizedheight}
+      | Total Rubiks: {(ui.resizedheight * ui.resizedwidth) / 9}
+    {/if}
   </div>
 </main>
 

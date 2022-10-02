@@ -1,7 +1,8 @@
 <script>
     export let checked = false;
     export let text = "O";
-    export let toggleClass = "bg-green-600";
+    export let bgcolor = "";
+    export let toggleClass = bgcolor ? "" : "bg-green-600";
 
     let toggle = () => {
         console.log("toggle")
@@ -10,9 +11,10 @@
 </script>
 
 <div
+    style={checked && bgcolor ? 'background-color: ' + bgcolor + ";" : ""}
     class="h-10 p-2 {checked
         ? toggleClass
-        : ''} rounded-lg border-solid border-2 text-center"
+        : ''} rounded-lg {checked ? 'border-solid' : 'border-none'} border-2 text-center"
     on:click={toggle}
     on:click
 >
