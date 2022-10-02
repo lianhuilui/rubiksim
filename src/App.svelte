@@ -8,12 +8,12 @@
   let image_loaded = false;
 
   let pallettes = [
+    { name: "rbk", colors: "#013082,#BB2328,#01B351,#FE8F25,#F5FF42,#ECF3F6" },
+    { name: "rbkng", colors: "#013082,#BB2328,#FE8F25,#F5FF42,#ECF3F6" },
     { name: "b&w", colors: "#000,#fff" },
     { name: "gray", colors: "#000,#888,#fff" },
     { name: "rgb", colors: "#000,#f00,#0f0,#00f,#fff" },
     { name: "cmyk", colors: "#000,#0ff,#f0f,#ff0,#fff" },
-    { name: "rbk", colors: "#013082,#BB2328,#01B351,#FE8F25,#F5FF42,#ECF3F6" },
-    { name: "rbkng", colors: "#013082,#BB2328,#FE8F25,#F5FF42,#ECF3F6" },
   ];
 
   /*
@@ -282,14 +282,14 @@
 
           let pixel = { r, g, b };
 
-          let pallette = config.individual_pallette_colors
-            .filter((color) => color.on)
-            .map((color) => color.color)
-            .join(",");
+          let pallette = config.pallette;
 
-          window.p = config.individual_pallette_colors;
-
-          if (i == 0) console.log("ap", pallette);
+          if (config.individual_pallette_colors.length) {
+            pallette = config.individual_pallette_colors
+              .filter((color) => color.on)
+              .map((color) => color.color)
+              .join(",");
+          }
 
           let np = nearestPixel(pixel, pallette);
 
