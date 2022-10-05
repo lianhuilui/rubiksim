@@ -178,6 +178,10 @@
     ui.hovering = false;
   };
 
+  let calc_i = function (x, y, width) {
+    return (y * width + x) * 4;
+  };
+
   let originalImage;
 
   let loadImageOnCanvas = function (file) {
@@ -282,6 +286,26 @@
     return annotated_pallette;
   };
 
+  let getPixelDataRGB = function (image_data, x, y) {
+    let width = image_data.width;
+    let i = calc_i(x, y, width);
+
+    return {
+      r: image_data.data[i],
+      g: image_data.data[i + 1],
+      b: image_data.data[i + 2],
+    };
+  };
+
+  let setPixelDataRGB = function (image_data, x, y, pixel) {
+    let width = image_data.width;
+    let i = calc_i(x, y, width);
+
+    image_data.data[i] = pixel.r
+    image_data.data[i+1] = pixel.g
+    image_data.data[i+2] = pixel.b
+  }
+
   afterUpdate(async () => {
     if (config.width && image_loaded && originalImage) {
       let ctx = output_canvas.getContext("2d");
@@ -313,25 +337,18 @@
         ui.resizedheight
       );
 
+      // make grayscale
       if (config.gray_scale_input) {
         for (let y = 0; y < image_data.height; y++) {
           for (let x = 0; x < image_data.width; x++) {
-            let i = (y * ui.resizedwidth + x) * 4;
-
-            let r = image_data.data[i + 0];
-            let g = image_data.data[i + 1];
-            let b = image_data.data[i + 2];
-
-            let gray = Math.round((r + g + b) / 3);
-
-            // gray scale
-            image_data.data[i] = gray;
-            image_data.data[i + 1] = gray;
-            image_data.data[i + 2] = gray;
+            let pixel = getPixelDataRGB(image_data, x, y)
+            let gray = Math.round((pixel.r + pixel.g + pixel.b) / 3);
+            setPixelDataRGB(image_data, x, y, {r: gray, g: gray, b:gray})
           }
         }
       }
 
+      // only get the pallette colors that are "ON"
       let pallette = config.pallette;
 
       if (config.individual_pallette_colors.length) {
@@ -344,70 +361,91 @@
       // processing
       for (let y = 0; y < image_data.height; y++) {
         for (let x = 0; x < image_data.width; x++) {
-          let n = y * ui.resizedwidth + x;
-          let i = n * 4;
+          let i = calc_i(x, y, ui.resizedwidth);
 
-          let r = image_data.data[i + 0];
-          let g = image_data.data[i + 1];
-          let b = image_data.data[i + 2];
-          let a = image_data.data[i + 3];
-
-          let pixel = { r, g, b };
+          let pixel = getPixelDataRGB(image_data, x, y);
 
           let np = nearestPixel(pixel, pallette);
 
           if (config.dithering == "") {
             // quantization
-            image_data.data[i] = np.r;
-            image_data.data[i + 1] = np.g;
-            image_data.data[i + 2] = np.b;
+            setPixelDataRGB(image_data, x, y, np)
+
           } else if (config.dithering == "fs") {
             // quantization
-            image_data.data[i] = np.r;
-            image_data.data[i + 1] = np.g;
-            image_data.data[i + 2] = np.b;
+            setPixelDataRGB(image_data, x, y, np)
+
             let quant_error = pixelDiff(pixel, np);
 
             if (x < image_data.width - 1) {
-              let i1 = (y * ui.resizedwidth + x + 1) * 4;
 
-              image_data.data[i1] =
-                image_data.data[i1] + (quant_error.r * 7) / 16;
-              image_data.data[i1 + 1] =
-                image_data.data[i1 + 1] + (quant_error.g * 7) / 16;
-              image_data.data[i1 + 2] =
-                image_data.data[i1 + 2] + (quant_error.b * 7) / 16;
+              let old_pixel = getPixelDataRGB(image_data, x + 1, y)
+
+              setPixelDataRGB(image_data, x + 1, y, {
+                r: old_pixel.r + (quant_error.r * 7) / 16,
+                g: old_pixel.g + (quant_error.g * 7) / 16,
+                b: old_pixel.b + (quant_error.b * 7) / 16,
+              })
+
+              // let i1 = (y * ui.resizedwidth + x + 1) * 4;
+              // image_data.data[i1] =
+              //   image_data.data[i1] + (quant_error.r * 7) / 16;
+              // image_data.data[i1 + 1] =
+              //   image_data.data[i1 + 1] + (quant_error.g * 7) / 16;
+              // image_data.data[i1 + 2] =
+              //   image_data.data[i1 + 2] + (quant_error.b * 7) / 16;
             }
 
             if (y < image_data.height - 1) {
               if (x > 0) {
-                let i2 = ((y + 1) * ui.resizedwidth + x - 1) * 4;
+                let old_pixel = getPixelDataRGB(image_data, x - 1, y + 1)
 
-                image_data.data[i2] =
-                  image_data.data[i2] + (quant_error.r * 3) / 16;
-                image_data.data[i2 + 1] =
-                  image_data.data[i2 + 1] + (quant_error.g * 3) / 16;
-                image_data.data[i2 + 2] =
-                  image_data.data[i2 + 2] + (quant_error.b * 3) / 16;
+                setPixelDataRGB(image_data, x - 1, y + 1, {
+                  r: old_pixel.r + (quant_error.r * 3) / 16,
+                  g: old_pixel.g + (quant_error.g * 3) / 16,
+                  b: old_pixel.b + (quant_error.b * 3) / 16,
+                })
+                // let i2 = ((y + 1) * ui.resizedwidth + x - 1) * 4;
+
+                // image_data.data[i2] =
+                //   image_data.data[i2] + (quant_error.r * 3) / 16;
+                // image_data.data[i2 + 1] =
+                //   image_data.data[i2 + 1] + (quant_error.g * 3) / 16;
+                // image_data.data[i2 + 2] =
+                //   image_data.data[i2 + 2] + (quant_error.b * 3) / 16;
               }
 
-              let i3 = ((y + 1) * ui.resizedwidth + x) * 4;
+              // let i3 = ((y + 1) * ui.resizedwidth + x) * 4;
+              // image_data.data[i3] =
+              //   image_data.data[i3] + (quant_error.r * 5) / 16;
+              // image_data.data[i3 + 1] =
+              //   image_data.data[i3 + 1] + (quant_error.g * 5) / 16;
+              // image_data.data[i3 + 2] =
+              //   image_data.data[i3 + 2] + (quant_error.b * 5) / 16;
 
-              image_data.data[i3] =
-                image_data.data[i3] + (quant_error.r * 5) / 16;
-              image_data.data[i3 + 1] =
-                image_data.data[i3 + 1] + (quant_error.g * 5) / 16;
-              image_data.data[i3 + 2] =
-                image_data.data[i3 + 2] + (quant_error.b * 5) / 16;
+                let old_pixel = getPixelDataRGB(image_data, x, y + 1)
+
+                setPixelDataRGB(image_data, x, y + 1, {
+                  r: old_pixel.r + (quant_error.r * 5) / 16,
+                  g: old_pixel.g + (quant_error.g * 5) / 16,
+                  b: old_pixel.b + (quant_error.b * 5) / 16,
+                })
 
               if (x < image_data.width - 1) {
-                let i4 = ((y + 1) * ui.resizedwidth + x + 1) * 4;
-                image_data.data[i4] =
-                  image_data.data[i4] + (quant_error.r * 1) / 16;
-                image_data.data[i4 + 1] =
-                  image_data.data[i4 + 1] + (quant_error.g * 1) / 16;
-                image_data.data[i4 + 2] =
-                  image_data.data[i4 + 2] + (quant_error.b * 1) / 16;
+                let old_pixel = getPixelDataRGB(image_data, x + 1, y + 1)
+
+                setPixelDataRGB(image_data, x + 1, y + 1, {
+                  r: old_pixel.r + (quant_error.r * 1) / 16,
+                  g: old_pixel.g + (quant_error.g * 1) / 16,
+                  b: old_pixel.b + (quant_error.b * 1) / 16,
+                })
+                // let i4 = ((y + 1) * ui.resizedwidth + x + 1) * 4;
+                // image_data.data[i4] =
+                //   image_data.data[i4] + (quant_error.r * 1) / 16;
+                // image_data.data[i4 + 1] =
+                //   image_data.data[i4 + 1] + (quant_error.g * 1) / 16;
+                // image_data.data[i4 + 2] =
+                //   image_data.data[i4 + 2] + (quant_error.b * 1) / 16;
               }
             }
           } else if (config.dithering == "pattern") {
@@ -418,7 +456,6 @@
             // done - 0 being the nearest pixel, 1 being farthest
             // then apply the threshold defined by pattern_grid
             // done: average should include all pixels within range
-
 
             // TODO:
             // TRY:
@@ -431,7 +468,7 @@
 
             for (let _i = 0; _i < config.pattern_grid.length; _i++) {
               for (let _j = 0; _j < config.pattern_grid[_i].length; _j++) {
-                let i = ((y + _i) * ui.resizedwidth + (x + _j)) * 4;
+                let i = calc_i(x + _j, y + _i, ui.resizedwidth);
 
                 sum_of_pixels.r += image_data.data[i];
                 sum_of_pixels.g += image_data.data[i + 1];
@@ -525,7 +562,6 @@
                     const i = ((y + _j) * ui.resizedwidth + (x + _i)) * 4;
 
                     if (RgbGrayValue(average)) {
-
                     }
 
                     if (next_color.norm_diff < threshold) {
