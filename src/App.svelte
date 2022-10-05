@@ -37,6 +37,10 @@
     };
   }
 
+  let clamp = function (min, max, value) {
+    return Math.max(min, Math.min(max, value));
+  };
+
   let hexToRgb = function (hex) {
     if (hex.length == 4) {
       let [a, b, c, d] = hex.split("");
@@ -107,6 +111,7 @@
   ];
 
   let config = {
+    cap: true,
     pixelated: true,
     width: 0,
     dithering: "pattern",
@@ -379,11 +384,19 @@
             if (x < image_data.width - 1) {
               let old_pixel = getPixelDataRGB(image_data, x + 1, y);
 
-              setPixelDataRGB(image_data, x + 1, y, {
-                r: old_pixel.r + (quant_error.r * 7) / 16,
-                g: old_pixel.g + (quant_error.g * 7) / 16,
-                b: old_pixel.b + (quant_error.b * 7) / 16,
-              });
+              if (config.cap) {
+                setPixelDataRGB(image_data, x + 1, y, {
+                  r: clamp(0, 255, old_pixel.r + (quant_error.r * 7) / 16),
+                  g: clamp(0, 255, old_pixel.g + (quant_error.g * 7) / 16),
+                  b: clamp(0, 255, old_pixel.b + (quant_error.b * 7) / 16),
+                });
+              } else {
+                setPixelDataRGB(image_data, x + 1, y, {
+                  r: old_pixel.r + (quant_error.r * 7) / 16,
+                  g: old_pixel.g + (quant_error.g * 7) / 16,
+                  b: old_pixel.b + (quant_error.b * 7) / 16,
+                });
+              }
 
               // let i1 = (y * ui.resizedwidth + x + 1) * 4;
               // image_data.data[i1] =
@@ -398,11 +411,20 @@
               if (x > 0) {
                 let old_pixel = getPixelDataRGB(image_data, x - 1, y + 1);
 
-                setPixelDataRGB(image_data, x - 1, y + 1, {
-                  r: old_pixel.r + (quant_error.r * 3) / 16,
-                  g: old_pixel.g + (quant_error.g * 3) / 16,
-                  b: old_pixel.b + (quant_error.b * 3) / 16,
-                });
+                if (config.cap) {
+                  setPixelDataRGB(image_data, x - 1, y + 1, {
+                    r: clamp(0, 255, old_pixel.r + (quant_error.r * 3) / 16),
+                    g: clamp(0, 255, old_pixel.g + (quant_error.g * 3) / 16),
+                    b: clamp(0, 255, old_pixel.b + (quant_error.b * 3) / 16),
+                  });
+                } else {
+                  setPixelDataRGB(image_data, x - 1, y + 1, {
+                    r: old_pixel.r + (quant_error.r * 3) / 16,
+                    g: old_pixel.g + (quant_error.g * 3) / 16,
+                    b: old_pixel.b + (quant_error.b * 3) / 16,
+                  });
+                }
+
                 // let i2 = ((y + 1) * ui.resizedwidth + x - 1) * 4;
 
                 // image_data.data[i2] =
@@ -423,20 +445,36 @@
 
               let old_pixel = getPixelDataRGB(image_data, x, y + 1);
 
-              setPixelDataRGB(image_data, x, y + 1, {
-                r: old_pixel.r + (quant_error.r * 5) / 16,
-                g: old_pixel.g + (quant_error.g * 5) / 16,
-                b: old_pixel.b + (quant_error.b * 5) / 16,
-              });
+              if (config.cap) {
+                setPixelDataRGB(image_data, x, y + 1, {
+                  r: clamp(0, 255, old_pixel.r + (quant_error.r * 5) / 16),
+                  g: clamp(0, 255, old_pixel.g + (quant_error.g * 5) / 16),
+                  b: clamp(0, 255, old_pixel.b + (quant_error.b * 5) / 16),
+                });
+              } else {
+                setPixelDataRGB(image_data, x, y + 1, {
+                  r: old_pixel.r + (quant_error.r * 5) / 16,
+                  g: old_pixel.g + (quant_error.g * 5) / 16,
+                  b: old_pixel.b + (quant_error.b * 5) / 16,
+                });
+              }
 
               if (x < image_data.width - 1) {
                 let old_pixel = getPixelDataRGB(image_data, x + 1, y + 1);
 
-                setPixelDataRGB(image_data, x + 1, y + 1, {
-                  r: old_pixel.r + (quant_error.r * 1) / 16,
-                  g: old_pixel.g + (quant_error.g * 1) / 16,
-                  b: old_pixel.b + (quant_error.b * 1) / 16,
-                });
+                if (config.cap) {
+                  setPixelDataRGB(image_data, x + 1, y + 1, {
+                    r: clamp(0, 255, old_pixel.r + (quant_error.r * 1) / 16),
+                    g: clamp(0, 255, old_pixel.g + (quant_error.g * 1) / 16),
+                    b: clamp(0, 255, old_pixel.b + (quant_error.b * 1) / 16),
+                  });
+                } else {
+                  setPixelDataRGB(image_data, x + 1, y + 1, {
+                    r: old_pixel.r + (quant_error.r * 1) / 16,
+                    g: old_pixel.g + (quant_error.g * 1) / 16,
+                    b: old_pixel.b + (quant_error.b * 1) / 16,
+                  });
+                }
                 // let i4 = ((y + 1) * ui.resizedwidth + x + 1) * 4;
                 // image_data.data[i4] =
                 //   image_data.data[i4] + (quant_error.r * 1) / 16;
@@ -771,6 +809,7 @@
             on:click={() => (config.dithering = "fs")}
             checked={config.dithering == "fs"}
           />
+          <Toggle text="Cap" bind:checked={config.cap} />
         </div>
         {#if config.dithering == "pattern"}
           <div class="flex">
@@ -778,7 +817,9 @@
             {#each matrices as m}
               <button
                 class="h-10 p-2 rounded-lg border-solid border-2"
-                on:click={() => {config.matrix = m}}
+                on:click={() => {
+                  config.matrix = m;
+                }}
               >
                 {m.length}
               </button>
