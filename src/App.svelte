@@ -110,7 +110,10 @@
     ],
   ];
 
+  // TODO: separate the configs which affect the final output
+  // from the ones that dont
   let config = {
+    cache: false,
     cap: true,
     pixelated: true,
     width: 0,
@@ -125,7 +128,6 @@
     pallette: pallettes[0].colors,
     individual_pallette_colors: [],
     debug_range: -1,
-    sqrt: true,
     matrix: matrices[0],
   };
 
@@ -190,6 +192,22 @@
     return (y * width + x) * 4;
   };
 
+  /**
+   * Returns a hash code from a string
+   * @param  {String} str The string to hash.
+   * @return {Number}    A 32bit integer
+   * @see http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+   */
+  function hashCode(str) {
+    let hash = 0;
+    for (let i = 0, len = str.length; i < len; i++) {
+      let chr = str.charCodeAt(i);
+      hash = (hash << 5) - hash + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  }
+
   let originalImage;
 
   let loadImageOnCanvas = function (file) {
@@ -207,8 +225,10 @@
 
       image_loaded = true;
 
+      console.log('waiting')
       await tick();
 
+      console.log('waited for tick, drawing now')
       ctx.drawImage(
         originalImage,
         0,
@@ -260,7 +280,7 @@
     return array;
   };
 
-  let calculatePixelDifference = function (color1, color2, sqrt) {
+  let calculatePixelDifference = function (color1, color2) {
     let pixel_diff = config.gray_scale_nearest_pixel
       ? pixelDiff(Rgb2Gray(color1), color2)
       : pixelDiff(color1, color2);
@@ -271,9 +291,7 @@
 
     let _diff = d_r * d_r + d_b * d_b + d_g * d_g;
 
-    if (config.sqrt) {
-      _diff = Math.sqrt(_diff);
-    }
+    _diff = Math.sqrt(_diff);
 
     return _diff;
   };
@@ -314,24 +332,76 @@
     image_data.data[i + 2] = pixel.b;
   };
 
+  // todo: cache result
+  let cache = {};
+
   afterUpdate(async () => {
-    if (config.width && image_loaded && originalImage) {
+    console.log("afterupdate");
+
+    if (!config.width) {
+      console.log("no width, ending here");
+      return;
+    }
+
+    if (!image_loaded) {
+      console.log("no image loaded, ending here");
+      return;
+    }
+
+    if (!originalImage) {
+      console.log("originalImage is empty", "ending here");
+      return;
+    }
+
+    let height = (ui.canvasheight / ui.canvaswidth) * config.width;
+    ui.resizedwidth = parseInt(config.width / 3) * 3;
+    ui.resizedheight = parseInt(height / 3) * 3;
+    ui.total_pixels = ui.resizedheight * ui.resizedwidth;
+
+    console.log('await tick')
+    await tick();
+
+
+    if (height < 1) {
+      console.log("height is less than 1", 'ending here')
+      return;
+    }
+
+    let thehash = hashCode(JSON.stringify(config))
+
+    if (cache[thehash]) {
+      console.log("found", thehash, "from cache");
+      // console.log(cache[thehash]);
+
       let ctx = output_canvas.getContext("2d");
 
-      let height = (ui.canvasheight / ui.canvaswidth) * config.width;
+      // let cached_image_data = ctx.createImageData(0, 0, ui.resizedwidth, ui.resizedheight)
 
-      ui.resizedwidth = parseInt(config.width / 3) * 3;
-      ui.resizedheight = parseInt(height / 3) * 3;
+      let __ = cache[thehash];
+      let cached_image_data = new ImageData(__.data, __.width, __.height);
 
-      ui.total_pixels = ui.resizedheight * ui.resizedwidth;
+      ctx.putImageData(cached_image_data, 0, 0);
 
-      await tick();
+      console.log("loaded", thehash);
+    } else {
+      console.log("generating!!!");
+      let ctx = output_canvas.getContext("2d");
+
+      // let height = (ui.canvasheight / ui.canvaswidth) * config.width;
+
+      // ui.resizedwidth = parseInt(config.width / 3) * 3;
+      // ui.resizedheight = parseInt(height / 3) * 3;
+      // ui.total_pixels = ui.resizedheight * ui.resizedwidth;
+
+      // console.log('waiting')
+      // await tick();
+
+      console.log('waited for tick, resizing now')
 
       // resize
-
       ctx.drawImage(originalImage, 0, 0, ui.resizedwidth, ui.resizedheight);
 
-      await tick();
+      // await tick();
 
       let image_data = ctx.getImageData(
         0,
@@ -366,7 +436,19 @@
       // processing
       for (let y = 0; y < image_data.height; y++) {
         for (let x = 0; x < image_data.width; x++) {
-          let i = calc_i(x, y, ui.resizedwidth);
+          // if (config.debug_range >= 0) {
+          //   let i = calc_i(x, y, image_data.width)
+          //   i /= 4
+          //   if (i > config.debug_range){
+          //     x = image_data.width
+          //     y = image_data.height
+          //     break;
+          //   } else {
+          //     console.log("i", i, "is less than", config.debug_range)
+          //   }
+          // } else {
+          //   console.log(config.debug_range)
+          // }
 
           let pixel = getPixelDataRGB(image_data, x, y);
 
@@ -376,6 +458,9 @@
             // quantization
             setPixelDataRGB(image_data, x, y, np);
           } else if (config.dithering == "fs") {
+            // TODO: investigate if quantization error that is pushed to other pixels are limited by 8 bits 0-255
+            // causing the value to clamp
+
             // quantization
             setPixelDataRGB(image_data, x, y, np);
 
@@ -397,14 +482,6 @@
                   b: old_pixel.b + (quant_error.b * 7) / 16,
                 });
               }
-
-              // let i1 = (y * ui.resizedwidth + x + 1) * 4;
-              // image_data.data[i1] =
-              //   image_data.data[i1] + (quant_error.r * 7) / 16;
-              // image_data.data[i1 + 1] =
-              //   image_data.data[i1 + 1] + (quant_error.g * 7) / 16;
-              // image_data.data[i1 + 2] =
-              //   image_data.data[i1 + 2] + (quant_error.b * 7) / 16;
             }
 
             if (y < image_data.height - 1) {
@@ -424,24 +501,7 @@
                     b: old_pixel.b + (quant_error.b * 3) / 16,
                   });
                 }
-
-                // let i2 = ((y + 1) * ui.resizedwidth + x - 1) * 4;
-
-                // image_data.data[i2] =
-                //   image_data.data[i2] + (quant_error.r * 3) / 16;
-                // image_data.data[i2 + 1] =
-                //   image_data.data[i2 + 1] + (quant_error.g * 3) / 16;
-                // image_data.data[i2 + 2] =
-                //   image_data.data[i2 + 2] + (quant_error.b * 3) / 16;
               }
-
-              // let i3 = ((y + 1) * ui.resizedwidth + x) * 4;
-              // image_data.data[i3] =
-              //   image_data.data[i3] + (quant_error.r * 5) / 16;
-              // image_data.data[i3 + 1] =
-              //   image_data.data[i3 + 1] + (quant_error.g * 5) / 16;
-              // image_data.data[i3 + 2] =
-              //   image_data.data[i3 + 2] + (quant_error.b * 5) / 16;
 
               let old_pixel = getPixelDataRGB(image_data, x, y + 1);
 
@@ -475,24 +535,11 @@
                     b: old_pixel.b + (quant_error.b * 1) / 16,
                   });
                 }
-                // let i4 = ((y + 1) * ui.resizedwidth + x + 1) * 4;
-                // image_data.data[i4] =
-                //   image_data.data[i4] + (quant_error.r * 1) / 16;
-                // image_data.data[i4 + 1] =
-                //   image_data.data[i4 + 1] + (quant_error.g * 1) / 16;
-                // image_data.data[i4 + 2] =
-                //   image_data.data[i4 + 2] + (quant_error.b * 1) / 16;
               }
             }
           } else if (config.dithering == "pattern") {
-            // TODO:
-            // Instead of averaging 2x2 (4 pixels) or 4x4 (16 pixels),
-            // work on each pixel indiviually and match it with the moving threshold.
-            // the moving threshold will come from the pattern_grid.
-            // E.g. threshold = pattern_grid[x % 4][y % 4] where 4 is the grid size
-
-            // https://en.wikipedia.org/wiki/Ordered_dithering
             // ordered dithering
+            // https://en.wikipedia.org/wiki/Ordered_dithering
             // new_pixel = nearestPalletteColor(old_pixel + (255/n) * pattern_grid[x%4][y%4] - 0.5)
 
             let old_pixel = getPixelDataRGB(image_data, x, y);
@@ -514,138 +561,38 @@
             );
 
             setPixelDataRGB(image_data, x, y, new_pixel);
-
-            // let pixel_diffs = annotatePixelDifference(pixel, pallette);
-            // sortAnnotatedPalletteByDistance(pixel_diffs);
-
-            // let min_diff = pixel_diffs[0].diff;
-            // let max_diff = pixel_diffs[pixel_diffs.length - 1].diff;
-
-            // if (ui.show_debug) sortAnnotatedPalletteByGrayValue(pixel_diffs);
-
-            // if (x == 0 && y == 0) {
-            //   console.log("diffs", pixel_diffs);
-            //   console.log("min", min_diff);
-            //   console.log("max", max_diff);
-            // }
-
-            // debugger;
-            // for (let itr = 0; itr < pixel_diffs.length; itr++) {
-            //   const p_diff = pixel_diffs[itr];
-
-            //   // normalize the diff
-            //   p_diff.norm_diff =
-            //     (p_diff.diff - min_diff) / (max_diff - min_diff);
-            // }
-
-            // if (x == 0 && y == 0) {
-            //   console.log("diffs", pixel_diffs);
-            //   console.log("min", min_diff);
-            //   console.log("max", max_diff);
-            // }
-
-            // let width_of_grid = config.pattern_grid[0].length;
-            // let height_of_grid = config.pattern_grid.length;
-
-            // // if (y % width_of_grid != 0) continue;
-            // // if (x % height_of_grid != 0) continue;
-
-            // for (let _x = 0; _x < pixel_diffs.length; _x++) {
-            //   const color = pixel_diffs[_x];
-
-            //   if (color.norm_diff == 0) {
-            //     // found the color we want. let's dither it
-            //     // with the next one
-            //     let next_color;
-            //     debugger;
-            //     if (_x < pixel_diffs.length - 1) {
-            //       next_color = pixel_diffs[_x + 1];
-            //     } else {
-            //       next_color = pixel_diffs[_x - 1];
-            //     }
-
-            //     for (let _i = 0; _i < config.pattern_grid.length; _i++) {
-            //       for (let _j = 0; _j < config.pattern_grid[_i].length; _j++) {
-            //         const threshold = config.pattern_grid[_i][_j];
-            //         const i = ((y + _j) * ui.resizedwidth + (x + _i)) * 4;
-
-            //         if (next_color.norm_diff < threshold) {
-            //           // next color
-            //           image_data.data[i] = next_color.color.r;
-            //           image_data.data[i + 1] = next_color.color.g;
-            //           image_data.data[i + 2] = next_color.color.b;
-
-            //           // image_data.data[i] = 255
-            //           // image_data.data[i + 1] = 0
-            //           // image_data.data[i + 2] = 0
-            //         } else {
-            //           // this color
-            //           image_data.data[i] = color.color.r;
-            //           image_data.data[i + 1] = color.color.g;
-            //           image_data.data[i + 2] = color.color.b;
-            //         }
-            //       }
-            //     }
-
-            //     break;
-            //   }
-            // }
-
-            /*
-            for (let _i = 0; _i < config.pattern_grid.length; _i++) {
-              for (let _j = 0; _j < config.pattern_grid[_i].length; _j++) {
-                // debugger;
-                const threshold = config.pattern_grid[_i][_j];
-
-                // let's assume
-                // color.diff = 0.1
-                // next_color.diff = 0.3
-                // next.... 0.4 -> 0.5 -> 0.6 -> 1.0
-                // threshold = 0.25
-                for (let _x = 0; _x < pixel_diffs.length - 1; _x++) {
-                  const color = pixel_diffs[_x];
-
-                  if (color.norm_diff == 0) {
-                    // found the color we want. let's dither it
-                    // with the next one
-                  }
-
-                  if (color.norm_diff <= threshold) {
-                    if (x == 0 && y == 0) {
-                      console.log("color", color, "is less than", threshold);
-                    }
-                    // todo: take care of edge cases (edge of the image)
-                    let i = ((y + _j) * ui.resizedwidth + (x + _i)) * 4;
-                    image_data.data[i] = color.color.r;
-                    image_data.data[i + 1] = color.color.g;
-                    image_data.data[i + 2] = color.color.b;
-
-                    break;
-                  } else {
-                    if (x == 0 && y == 0) {
-                      console.log("skipping", color);
-                    }
-                  }
-
-                  if (_x == pixel_diffs.length - 1) {
-                    // no color was found
-                    image_data.data[i] = 127;
-                    image_data.data[i + 1] = 127;
-                    image_data.data[i + 2] = 127;
-                  }
-                }
-              }
-            }
-            */
           }
         }
       } // end 2d for loop
 
       ctx.putImageData(image_data, 0, 0);
 
-      await tick();
+      // image_data = ctx.getImageData(0, 0, ui.resizedwidth, ui.resizedheight);
 
+      // todo: cache the result in cache
+      // 1. generate a unique key based on config
+      // 2. store the image_data in cache with a hash of the config
+
+      let tocache = new ImageData(new Uint8ClampedArray(image_data.data), image_data.width, image_data.height);
+
+      cache[thehash] = tocache;
+
+      // console.log("adding", thehash, "to cache");
+      // console.log(image_data);
+      // console.log(tocache);
+    }
+
+    // await tick();
+
+    if (config.show_rubiks) {
       let rctx = rubiks_canvas.getContext("2d");
+      let ctx = output_canvas.getContext("2d");
+      let image_data = ctx.getImageData(
+        0,
+        0,
+        ui.resizedwidth,
+        ui.resizedheight
+      );
 
       for (let y = 0; y < image_data.height; y++) {
         for (let x = 0; x < image_data.width; x++) {
@@ -783,11 +730,11 @@
     {#if ui.current == "processing"}
       <div class="bg-white text-black p-2">
         <div class="flex">
-          <span class="p-2">Input Image</span>
+          <span class="p-2">Input Image:</span>
           <Toggle text="Gray" bind:checked={config.gray_scale_input} />
         </div>
         <div class="flex">
-          <span class="p-2">Nearest Pixel</span>
+          <span class="p-2">Nearest Pixel:</span>
           <Toggle
             text="Nearest Gray Pixel"
             bind:checked={config.gray_scale_nearest_pixel}
@@ -804,18 +751,11 @@
             checked={config.dithering == "pattern"}
             on:click={() => (config.dithering = "pattern")}
           />
-          <Toggle
-            text="Floyd Steinberg"
-            on:click={() => (config.dithering = "fs")}
-            checked={config.dithering == "fs"}
-          />
-          <Toggle text="Cap" bind:checked={config.cap} />
-        </div>
-        {#if config.dithering == "pattern"}
-          <div class="flex">
+          {#if config.dithering == "pattern"}
             <span class="h-10 p-2"> Matrix: </span>
             {#each matrices as m}
               <button
+                class:bg-green-600={config.matrix == m}
                 class="h-10 p-2 rounded-lg border-solid border-2"
                 on:click={() => {
                   config.matrix = m;
@@ -824,8 +764,13 @@
                 {m.length}
               </button>
             {/each}
-          </div>
-        {/if}
+          {/if}
+          <Toggle
+            text="Floyd Steinberg"
+            on:click={() => (config.dithering = "fs")}
+            checked={config.dithering == "fs"}
+          />
+        </div>
       </div>
     {/if}
 
@@ -864,21 +809,25 @@
         max={ui.total_pixels}
         step="1"
       />
-      <Toggle bind:checked={config.sqrt} text="Sqrt" />
-      {#each config.matrix as row}
-        <div class="flex">
-          {#each row as cell}
-            <input
-              type="range"
-              bind:value={cell}
-              step="0.01"
-              max="1.0"
-              min="0.0"
-            />
-            {cell}
-          {/each}
-        </div>
-      {/each}
+      {#if config.dithering == "pattern"}
+        {#each config.matrix as row}
+          <div class="flex">
+            {#each row as cell}
+              <input
+                type="range"
+                bind:value={cell}
+                step="0.01"
+                max="1.0"
+                min="0.0"
+              />
+              {cell}
+            {/each}
+          </div>
+        {/each}
+      {/if}
+      {#if config.dithering == "fs"}
+        <Toggle text="Cap" bind:checked={config.cap} />
+      {/if}
     {/if}
 
     <div class="bg-green-800 grow justify-center">
