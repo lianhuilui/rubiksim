@@ -113,7 +113,7 @@
   // TODO: separate the configs which affect the final output
   // from the ones that dont
   let config = {
-    cache: false,
+    cache: true,
     cap: true,
     pixelated: true,
     width: 0,
@@ -131,9 +131,21 @@
     matrix: matrices[0],
   };
 
+  $: params = {
+    width: config.width,
+    dithering: config.dithering,
+    gray_scale_input: config.gray_scale_input,
+    gray_scale_nearest_pixel: config.gray_scale_nearest_pixel,
+    pallette: config.pallette,
+    individual_pallette_colors: config.individual_pallette_colors,
+    matrix: config.matrix,
+  };
+
   $: debug = (
     "UI = " +
     JSON.stringify(ui) +
+    "\nparams: " +
+    JSON.stringify(params) +
     "\nCONFIG:" +
     JSON.stringify(config)
   ).replaceAll(",", ", ");
@@ -225,10 +237,8 @@
 
       image_loaded = true;
 
-      console.log('waiting')
       await tick();
 
-      console.log('waited for tick, drawing now')
       ctx.drawImage(
         originalImage,
         0,
@@ -358,18 +368,16 @@
     ui.resizedheight = parseInt(height / 3) * 3;
     ui.total_pixels = ui.resizedheight * ui.resizedwidth;
 
-    console.log('await tick')
     await tick();
 
-
     if (height < 1) {
-      console.log("height is less than 1", 'ending here')
+      console.log("height is less than 1", "ending here");
       return;
     }
 
-    let thehash = hashCode(JSON.stringify(config))
+    let thehash = hashCode(JSON.stringify(params));
 
-    if (cache[thehash]) {
+    if (config.cache && cache[thehash]) {
       console.log("found", thehash, "from cache");
       // console.log(cache[thehash]);
 
@@ -382,9 +390,9 @@
 
       ctx.putImageData(cached_image_data, 0, 0);
 
-      console.log("loaded", thehash);
+      // console.log("loaded", thehash);
     } else {
-      console.log("generating!!!");
+      console.log("generating...", thehash);
       let ctx = output_canvas.getContext("2d");
 
       // let height = (ui.canvasheight / ui.canvaswidth) * config.width;
@@ -395,8 +403,6 @@
 
       // console.log('waiting')
       // await tick();
-
-      console.log('waited for tick, resizing now')
 
       // resize
       ctx.drawImage(originalImage, 0, 0, ui.resizedwidth, ui.resizedheight);
@@ -573,16 +579,20 @@
       // 1. generate a unique key based on config
       // 2. store the image_data in cache with a hash of the config
 
-      let tocache = new ImageData(new Uint8ClampedArray(image_data.data), image_data.width, image_data.height);
+      if (config.cache) {
+        let tocache = new ImageData(
+          new Uint8ClampedArray(image_data.data),
+          image_data.width,
+          image_data.height
+        );
 
-      cache[thehash] = tocache;
+        cache[thehash] = tocache;
 
-      // console.log("adding", thehash, "to cache");
+        console.log("adding", thehash, "to cache");
+      }
       // console.log(image_data);
       // console.log(tocache);
     }
-
-    // await tick();
 
     if (config.show_rubiks) {
       let rctx = rubiks_canvas.getContext("2d");
@@ -653,7 +663,7 @@
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("img");
-          }}>Image</button
+          }}>Output Image</button
         >
         <button
           class:bg-gray-400={ui.current == "pallette"}
@@ -700,6 +710,7 @@
           <div class="flex">
             <div class="d-block">
               <Toggle text="Pixelated" bind:checked={config.pixelated} />
+              <Toggle text="Cache" bind:checked={config.cache} />
             </div>
           </div>
         </div>
