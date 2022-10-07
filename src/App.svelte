@@ -297,7 +297,7 @@
 
           let pixel = m.getPixelDataRGB(image_data, x, y);
 
-          let np = m.nearestPixel2(pixel, color_array);
+          let np = m.nearestPixel2(pixel, color_array, config.gray_scale_nearest_pixel);
           // let np = m.nearestPixel(pixel, pallette);
 
           if (config.dithering == "") {
@@ -411,7 +411,8 @@
                 g: old_pixel.g + change,
                 b: old_pixel.b + change,
               },
-              color_array
+              color_array,
+              config.gray_scale_nearest_pixel
             );
 
             // setPixelDataRGB(image_data, x, y, new_pixel);

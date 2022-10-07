@@ -55,7 +55,7 @@ const calculatePixelDifference = (color1, color2, gray_scale_nearest_pixel) => {
 };
 
 let pallette_cache = {}
-const nearestPixel = (rgb, pallette) => {
+const nearestPixel = (rgb, pallette, gray_scale_nearest_pixel) => {
     let colors;
     if (pallette_cache[pallette]) {
         colors = pallette_cache[pallette]
@@ -70,7 +70,7 @@ const nearestPixel = (rgb, pallette) => {
     colors.forEach((color, i) => {
         let _ = hexToRgb(color);
 
-        let _diff = calculatePixelDifference(_, rgb);
+        let _diff = calculatePixelDifference(_, rgb, gray_scale_nearest_pixel);
 
         if (diff == null || diff > _diff) {
             diff = _diff;
@@ -81,13 +81,13 @@ const nearestPixel = (rgb, pallette) => {
     return ans;
 };
 
-const nearestPixel2 = (rgb, pallette_array) => {
+const nearestPixel2 = (rgb, pallette_array, gray_scale_nearest_pixel) => {
     let ans = pallette_array[0];
     let diff = null;
 
     pallette_array.forEach((color, i) => {
 
-        let _diff = calculatePixelDifference(color, rgb);
+        let _diff = calculatePixelDifference(color, rgb, gray_scale_nearest_pixel);
 
         if (diff == null || diff > _diff) {
             diff = _diff;
