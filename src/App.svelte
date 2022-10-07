@@ -1,9 +1,9 @@
 <script>
   import { afterUpdate } from "svelte";
-  import { object_without_properties } from "svelte/internal";
   import Toggle from "./lib/Toggle.svelte";
   import PalletteButton from "./lib/PalletteButton.svelte";
   import { tick } from "svelte";
+  import { img_processing as m } from "./img_processing.js";
 
   let image_loaded = false;
 
@@ -21,82 +21,6 @@
     { name: "cmyk", colors: "#000,#0ff,#f0f,#ff0,#fff" },
   ];
 
-  function pixelDiff(lhs, rhs) {
-    return {
-      r: lhs.r - rhs.r,
-      g: lhs.g - rhs.g,
-      b: lhs.b - rhs.b,
-    };
-  }
-
-  function pixelAdd(lhs, rhs) {
-    return {
-      r: lhs.r + rhs.r,
-      g: lhs.g + rhs.g,
-      b: lhs.b + rhs.b,
-    };
-  }
-
-  let clamp = function (min, max, value) {
-    return Math.max(min, Math.min(max, value));
-  };
-
-  let hexToRgb = function (hex) {
-    if (hex.length == 4) {
-      let [a, b, c, d] = hex.split("");
-
-      hex = "#" + b + b + c + c + d + d;
-    }
-
-    let r = parseInt(hex.substring(1, 3), 16);
-    let g = parseInt(hex.substring(3, 5), 16);
-    let b = parseInt(hex.substring(5, 7), 16);
-
-    return { r, g, b };
-  };
-
-  let RgbToHex = function (rgb) {
-    return (
-      "#" +
-      rgb.r.toString(16).padStart(2, "0") +
-      rgb.g.toString(16).padStart(2, "0") +
-      rgb.b.toString(16).padStart(2, "0")
-    );
-  };
-
-  let RgbGrayValue = function (rgb) {
-    return Math.floor((rgb.r + rgb.g + rgb.b) / 3);
-  };
-
-  let Rgb2Gray = function (rgb) {
-    let gray = RgbGrayValue(rgb);
-
-    return {
-      r: gray,
-      g: gray,
-      b: gray,
-    };
-  };
-
-  let nearestPixel = function (rgb, pallette) {
-    let colors = pallette.split(",");
-    let ans = colors[0];
-    let diff = null;
-
-    colors.forEach((color, i) => {
-      let _ = hexToRgb(color);
-
-      let _diff = calculatePixelDifference(_, rgb);
-
-      if (diff == null || diff > _diff) {
-        diff = _diff;
-        ans = _;
-      }
-    });
-
-    return ans;
-  };
-
   let matrices = [
     [
       [0 / 4, 2 / 4],
@@ -113,14 +37,14 @@
   // TODO: separate the configs which affect the final output
   // from the ones that dont
   let config = {
-    loadedfile: '',
+    loadedfile: "",
     cache: true,
-    cap: true,
+    cap: false,
     pixelated: true,
     width: 0,
     height: 0,
     dithering: "pattern",
-    max_width: 300,
+    max_width: 600,
     show_rubiks: true,
     show_grid: false,
     rubiks_scale: 8,
@@ -204,31 +128,11 @@
     ui.hovering = false;
   };
 
-  let calc_i = function (x, y, width) {
-    return (y * width + x) * 4;
-  };
-
-  /**
-   * Returns a hash code from a string
-   * @param  {String} str The string to hash.
-   * @return {Number}    A 32bit integer
-   * @see http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
-   */
-  function hashCode(str) {
-    let hash = 0;
-    for (let i = 0, len = str.length; i < len; i++) {
-      let chr = str.charCodeAt(i);
-      hash = (hash << 5) - hash + chr;
-      hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-  }
-
   let originalImage;
 
   let loadImageOnCanvas = function (file) {
     // empty cache
-    config.loadedfile = file.name
+    config.loadedfile = file.name;
 
     let ctx = canvas.getContext("2d");
     originalImage = new Image();
@@ -274,79 +178,6 @@
     }
   };
 
-  /* return an array of colors from pallette
-  annotated difference from given color */
-  let annotatePixelDifference = function (color, pallette) {
-    let array = [];
-
-    pallette.split(",").forEach((pallette_color, i) => {
-      let pallette_color_rgb = hexToRgb(pallette_color);
-      let diff = calculatePixelDifference(color, pallette_color_rgb);
-
-      let new_row = {
-        color: pallette_color_rgb,
-        hex: pallette_color,
-        diff: diff,
-      };
-
-      array.push(new_row);
-    });
-
-    return array;
-  };
-
-  let calculatePixelDifference = function (color1, color2) {
-    let pixel_diff = config.gray_scale_nearest_pixel
-      ? pixelDiff(Rgb2Gray(color1), color2)
-      : pixelDiff(color1, color2);
-
-    let d_r = Math.abs(pixel_diff.r);
-    let d_g = Math.abs(pixel_diff.g);
-    let d_b = Math.abs(pixel_diff.b);
-
-    let _diff = d_r * d_r + d_b * d_b + d_g * d_g;
-
-    _diff = Math.sqrt(_diff);
-
-    return _diff;
-  };
-
-  let sortAnnotatedPalletteByDistance = function (annotated_pallette) {
-    annotated_pallette.sort((a, b) => a.diff - b.diff);
-
-    return annotated_pallette;
-  };
-
-  let sortAnnotatedPalletteByGrayValue = function (annotated_pallette) {
-    annotated_pallette.sort(
-      (a, b) =>
-        (a.color.r + a.color.b + a.color.g) / 3 -
-        (b.color.r + b.color.b + b.color.g) / 3
-    );
-
-    return annotated_pallette;
-  };
-
-  let getPixelDataRGB = function (image_data, x, y) {
-    let width = image_data.width;
-    let i = calc_i(x, y, width);
-
-    return {
-      r: image_data.data[i],
-      g: image_data.data[i + 1],
-      b: image_data.data[i + 2],
-    };
-  };
-
-  let setPixelDataRGB = function (image_data, x, y, pixel) {
-    let width = image_data.width;
-    let i = calc_i(x, y, width);
-
-    image_data.data[i] = pixel.r;
-    image_data.data[i + 1] = pixel.g;
-    image_data.data[i + 2] = pixel.b;
-  };
-
   // to cache output
   let cache = {};
 
@@ -381,7 +212,7 @@
       return;
     }
 
-    let thehash = hashCode(JSON.stringify(params));
+    let thehash = m.hashCode(JSON.stringify(params));
 
     if (config.cache && cache[thehash]) {
       console.log("found", params.loadedfile, thehash, "from cache");
@@ -401,19 +232,7 @@
       console.log("generating...", JSON.stringify(params), thehash);
       let ctx = output_canvas.getContext("2d");
 
-      // let height = (ui.canvasheight / ui.canvaswidth) * config.width;
-
-      // ui.resizedwidth = parseInt(config.width / 3) * 3;
-      // ui.resizedheight = parseInt(height / 3) * 3;
-      // ui.total_pixels = ui.resizedheight * ui.resizedwidth;
-
-      // console.log('waiting')
-      // await tick();
-
-      // resize
       ctx.drawImage(originalImage, 0, 0, ui.resizedwidth, ui.resizedheight);
-
-      // await tick();
 
       let image_data = ctx.getImageData(
         0,
@@ -424,12 +243,17 @@
 
       // make grayscale
       if (config.gray_scale_input) {
-        // todo: optimize
-        for (let y = 0; y < image_data.height; y++) {
-          for (let x = 0; x < image_data.width; x++) {
-            let pixel = getPixelDataRGB(image_data, x, y);
+        for (let y = 0, i = 0; y < image_data.height; y++) {
+          for (let x = 0; x < image_data.width; x++, i += 4) {
+            let pixel = m.getPixelDataRGB(image_data, x, y);
             let gray = Math.round((pixel.r + pixel.g + pixel.b) / 3);
-            setPixelDataRGB(image_data, x, y, { r: gray, g: gray, b: gray });
+
+            // setPixelDataRGB(image_data, x, y, { r: gray, g: gray, b: gray });
+
+            // optimized
+            m.setPixelDataRaw(image_data, i, gray);
+            m.setPixelDataRaw(image_data, i + 1, gray);
+            m.setPixelDataRaw(image_data, i + 2, gray);
           }
         }
       }
@@ -446,10 +270,17 @@
 
       let N = pallette.split(",").length;
 
+      let color_array = pallette.split(",");
+
+      color_array.forEach((color, i) => {
+        color_array[i] = m.hexToRgb(color);
+      });
+
       // processing
-      console.log('processing pixels', image_data.width, image_data.height)
-      for (let y = 0; y < image_data.height; y++) {
-        for (let x = 0; x < image_data.width; x++) {
+      for (let y = 0, i = 0; y < image_data.height; y++) {
+        for (let x = 0; x < image_data.width; x++, i += 4) {
+          // todo: optimize
+
           // if (config.debug_range >= 0) {
           //   let i = calc_i(x, y, image_data.width)
           //   i /= 4
@@ -464,33 +295,42 @@
           //   console.log(config.debug_range)
           // }
 
-          let pixel = getPixelDataRGB(image_data, x, y);
+          let pixel = m.getPixelDataRGB(image_data, x, y);
 
-          let np = nearestPixel(pixel, pallette);
+          let np = m.nearestPixel2(pixel, color_array);
+          // let np = m.nearestPixel(pixel, pallette);
 
           if (config.dithering == "") {
             // quantization
-            setPixelDataRGB(image_data, x, y, np);
+            // setPixelDataRGB(image_data, x, y, np);
+            m.setPixelDataRaw(image_data, i, np.r);
+            m.setPixelDataRaw(image_data, i + 1, np.g);
+            m.setPixelDataRaw(image_data, i + 2, np.b);
           } else if (config.dithering == "fs") {
             // TODO: investigate if quantization error that is pushed to other pixels are limited by 8 bits 0-255
             // causing the value to clamp
+            // NOTE: it seems to be clamped because the underlying
+            // array is Uint8ClampedArray
 
             // quantization
-            setPixelDataRGB(image_data, x, y, np);
+            // setPixelDataRGB(image_data, x, y, np);
+            m.setPixelDataRaw(image_data, i, np.r);
+            m.setPixelDataRaw(image_data, i + 1, np.g);
+            m.setPixelDataRaw(image_data, i + 2, np.b);
 
-            let quant_error = pixelDiff(pixel, np);
+            let quant_error = m.pixelDiff(pixel, np);
 
             if (x < image_data.width - 1) {
-              let old_pixel = getPixelDataRGB(image_data, x + 1, y);
+              let old_pixel = m.getPixelDataRGB(image_data, x + 1, y);
 
               if (config.cap) {
-                setPixelDataRGB(image_data, x + 1, y, {
-                  r: clamp(0, 255, old_pixel.r + (quant_error.r * 7) / 16),
-                  g: clamp(0, 255, old_pixel.g + (quant_error.g * 7) / 16),
-                  b: clamp(0, 255, old_pixel.b + (quant_error.b * 7) / 16),
+                m.setPixelDataRGB(image_data, x + 1, y, {
+                  r: m.clamp(0, 255, old_pixel.r + (quant_error.r * 7) / 16),
+                  g: m.clamp(0, 255, old_pixel.g + (quant_error.g * 7) / 16),
+                  b: m.clamp(0, 255, old_pixel.b + (quant_error.b * 7) / 16),
                 });
               } else {
-                setPixelDataRGB(image_data, x + 1, y, {
+                m.setPixelDataRGB(image_data, x + 1, y, {
                   r: old_pixel.r + (quant_error.r * 7) / 16,
                   g: old_pixel.g + (quant_error.g * 7) / 16,
                   b: old_pixel.b + (quant_error.b * 7) / 16,
@@ -500,16 +340,16 @@
 
             if (y < image_data.height - 1) {
               if (x > 0) {
-                let old_pixel = getPixelDataRGB(image_data, x - 1, y + 1);
+                let old_pixel = m.getPixelDataRGB(image_data, x - 1, y + 1);
 
                 if (config.cap) {
-                  setPixelDataRGB(image_data, x - 1, y + 1, {
-                    r: clamp(0, 255, old_pixel.r + (quant_error.r * 3) / 16),
-                    g: clamp(0, 255, old_pixel.g + (quant_error.g * 3) / 16),
-                    b: clamp(0, 255, old_pixel.b + (quant_error.b * 3) / 16),
+                  m.setPixelDataRGB(image_data, x - 1, y + 1, {
+                    r: m.clamp(0, 255, old_pixel.r + (quant_error.r * 3) / 16),
+                    g: m.clamp(0, 255, old_pixel.g + (quant_error.g * 3) / 16),
+                    b: m.clamp(0, 255, old_pixel.b + (quant_error.b * 3) / 16),
                   });
                 } else {
-                  setPixelDataRGB(image_data, x - 1, y + 1, {
+                  m.setPixelDataRGB(image_data, x - 1, y + 1, {
                     r: old_pixel.r + (quant_error.r * 3) / 16,
                     g: old_pixel.g + (quant_error.g * 3) / 16,
                     b: old_pixel.b + (quant_error.b * 3) / 16,
@@ -517,16 +357,16 @@
                 }
               }
 
-              let old_pixel = getPixelDataRGB(image_data, x, y + 1);
+              let old_pixel = m.getPixelDataRGB(image_data, x, y + 1);
 
               if (config.cap) {
-                setPixelDataRGB(image_data, x, y + 1, {
-                  r: clamp(0, 255, old_pixel.r + (quant_error.r * 5) / 16),
-                  g: clamp(0, 255, old_pixel.g + (quant_error.g * 5) / 16),
-                  b: clamp(0, 255, old_pixel.b + (quant_error.b * 5) / 16),
+                m.setPixelDataRGB(image_data, x, y + 1, {
+                  r: m.clamp(0, 255, old_pixel.r + (quant_error.r * 5) / 16),
+                  g: m.clamp(0, 255, old_pixel.g + (quant_error.g * 5) / 16),
+                  b: m.clamp(0, 255, old_pixel.b + (quant_error.b * 5) / 16),
                 });
               } else {
-                setPixelDataRGB(image_data, x, y + 1, {
+                m.setPixelDataRGB(image_data, x, y + 1, {
                   r: old_pixel.r + (quant_error.r * 5) / 16,
                   g: old_pixel.g + (quant_error.g * 5) / 16,
                   b: old_pixel.b + (quant_error.b * 5) / 16,
@@ -534,16 +374,16 @@
               }
 
               if (x < image_data.width - 1) {
-                let old_pixel = getPixelDataRGB(image_data, x + 1, y + 1);
+                let old_pixel = m.getPixelDataRGB(image_data, x + 1, y + 1);
 
                 if (config.cap) {
-                  setPixelDataRGB(image_data, x + 1, y + 1, {
-                    r: clamp(0, 255, old_pixel.r + (quant_error.r * 1) / 16),
-                    g: clamp(0, 255, old_pixel.g + (quant_error.g * 1) / 16),
-                    b: clamp(0, 255, old_pixel.b + (quant_error.b * 1) / 16),
+                  m.setPixelDataRGB(image_data, x + 1, y + 1, {
+                    r: m.clamp(0, 255, old_pixel.r + (quant_error.r * 1) / 16),
+                    g: m.clamp(0, 255, old_pixel.g + (quant_error.g * 1) / 16),
+                    b: m.clamp(0, 255, old_pixel.b + (quant_error.b * 1) / 16),
                   });
                 } else {
-                  setPixelDataRGB(image_data, x + 1, y + 1, {
+                  m.setPixelDataRGB(image_data, x + 1, y + 1, {
                     r: old_pixel.r + (quant_error.r * 1) / 16,
                     g: old_pixel.g + (quant_error.g * 1) / 16,
                     b: old_pixel.b + (quant_error.b * 1) / 16,
@@ -556,7 +396,7 @@
             // https://en.wikipedia.org/wiki/Ordered_dithering
             // new_pixel = nearestPalletteColor(old_pixel + (255/n) * pattern_grid[x%4][y%4] - 0.5)
 
-            let old_pixel = getPixelDataRGB(image_data, x, y);
+            let old_pixel = m.getPixelDataRGB(image_data, x, y);
 
             let change =
               (255 / N) *
@@ -565,16 +405,19 @@
               ] -
                 0.5);
 
-            let new_pixel = nearestPixel(
+            let new_pixel = m.nearestPixel2(
               {
                 r: old_pixel.r + change,
                 g: old_pixel.g + change,
                 b: old_pixel.b + change,
               },
-              pallette
+              color_array
             );
 
-            setPixelDataRGB(image_data, x, y, new_pixel);
+            // setPixelDataRGB(image_data, x, y, new_pixel);
+            m.setPixelDataRaw(image_data, i, new_pixel.r);
+            m.setPixelDataRaw(image_data, i + 1, new_pixel.g);
+            m.setPixelDataRaw(image_data, i + 2, new_pixel.b);
           }
         }
       } // end 2d for loop
@@ -593,7 +436,7 @@
         );
 
         console.log("adding", thehash, "to cache");
-        console.log(tocache)
+        console.log(tocache);
 
         cache[thehash] = tocache;
       }
@@ -611,32 +454,14 @@
         ui.resizedheight
       );
 
-      if (true) {
-        rctx.imageSmoothingEnabled = false;
-        rctx.drawImage(output_canvas, 0, 0, ui.resizedwidth * config.rubiks_scale, ui.resizedheight * config.rubiks_scale);
-      } else {
-        for (let y = 0; y < image_data.height; y++) {
-          for (let x = 0; x < image_data.width; x++) {
-            let style = "#ffffff";
-
-            let i = (y * image_data.width + x) * 4;
-
-            let r = image_data.data[i + 0];
-            let g = image_data.data[i + 1];
-            let b = image_data.data[i + 2];
-
-            style = RgbToHex({ r, g, b });
-
-            rctx.fillStyle = style;
-            rctx.fillRect(
-              x * config.rubiks_scale,
-              y * config.rubiks_scale,
-              x + config.rubiks_scale + 1,
-              y + config.rubiks_scale + 1
-            );
-          }
-        }
-      }
+      rctx.imageSmoothingEnabled = false;
+      rctx.drawImage(
+        output_canvas,
+        0,
+        0,
+        ui.resizedwidth * config.rubiks_scale,
+        ui.resizedheight * config.rubiks_scale
+      );
 
       if (config.show_grid && config.grid_size > 0) {
         rctx.lineWidth = config.grid_size;
