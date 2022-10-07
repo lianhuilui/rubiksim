@@ -113,10 +113,12 @@
   // TODO: separate the configs which affect the final output
   // from the ones that dont
   let config = {
+    loadedfile: '',
     cache: true,
     cap: true,
     pixelated: true,
     width: 0,
+    height: 0,
     dithering: "pattern",
     max_width: 300,
     show_rubiks: true,
@@ -132,7 +134,9 @@
   };
 
   $: params = {
+    loadedfile: config.loadedfile,
     width: config.width,
+    height: config.height,
     dithering: config.dithering,
     gray_scale_input: config.gray_scale_input,
     gray_scale_nearest_pixel: config.gray_scale_nearest_pixel,
@@ -223,7 +227,8 @@
   let originalImage;
 
   let loadImageOnCanvas = function (file) {
-    console.log(file);
+    // empty cache
+    config.loadedfile = file.name
 
     let ctx = canvas.getContext("2d");
     originalImage = new Image();
@@ -342,11 +347,11 @@
     image_data.data[i + 2] = pixel.b;
   };
 
-  // todo: cache result
+  // to cache output
   let cache = {};
 
   afterUpdate(async () => {
-    console.log("afterupdate");
+    // console.log("afterupdate");
 
     if (!config.width) {
       console.log("no width, ending here");
@@ -364,6 +369,7 @@
     }
 
     let height = (ui.canvasheight / ui.canvaswidth) * config.width;
+    config.height = height;
     ui.resizedwidth = parseInt(config.width / 3) * 3;
     ui.resizedheight = parseInt(height / 3) * 3;
     ui.total_pixels = ui.resizedheight * ui.resizedwidth;
@@ -378,7 +384,7 @@
     let thehash = hashCode(JSON.stringify(params));
 
     if (config.cache && cache[thehash]) {
-      console.log("found", thehash, "from cache");
+      console.log("found", params.loadedfile, thehash, "from cache");
       // console.log(cache[thehash]);
 
       let ctx = output_canvas.getContext("2d");
@@ -392,7 +398,7 @@
 
       // console.log("loaded", thehash);
     } else {
-      console.log("generating...", thehash);
+      console.log("generating...", JSON.stringify(params), thehash);
       let ctx = output_canvas.getContext("2d");
 
       // let height = (ui.canvasheight / ui.canvaswidth) * config.width;
@@ -418,6 +424,7 @@
 
       // make grayscale
       if (config.gray_scale_input) {
+        // todo: optimize
         for (let y = 0; y < image_data.height; y++) {
           for (let x = 0; x < image_data.width; x++) {
             let pixel = getPixelDataRGB(image_data, x, y);
@@ -440,6 +447,7 @@
       let N = pallette.split(",").length;
 
       // processing
+      console.log('processing pixels', image_data.width, image_data.height)
       for (let y = 0; y < image_data.height; y++) {
         for (let x = 0; x < image_data.width; x++) {
           // if (config.debug_range >= 0) {
@@ -573,8 +581,6 @@
 
       ctx.putImageData(image_data, 0, 0);
 
-      // image_data = ctx.getImageData(0, 0, ui.resizedwidth, ui.resizedheight);
-
       // todo: cache the result in cache
       // 1. generate a unique key based on config
       // 2. store the image_data in cache with a hash of the config
@@ -586,9 +592,10 @@
           image_data.height
         );
 
-        cache[thehash] = tocache;
-
         console.log("adding", thehash, "to cache");
+        console.log(tocache)
+
+        cache[thehash] = tocache;
       }
       // console.log(image_data);
       // console.log(tocache);
@@ -604,25 +611,30 @@
         ui.resizedheight
       );
 
-      for (let y = 0; y < image_data.height; y++) {
-        for (let x = 0; x < image_data.width; x++) {
-          let style = "#ffffff";
+      if (true) {
+        rctx.imageSmoothingEnabled = false;
+        rctx.drawImage(output_canvas, 0, 0, ui.resizedwidth * config.rubiks_scale, ui.resizedheight * config.rubiks_scale);
+      } else {
+        for (let y = 0; y < image_data.height; y++) {
+          for (let x = 0; x < image_data.width; x++) {
+            let style = "#ffffff";
 
-          let i = (y * image_data.width + x) * 4;
+            let i = (y * image_data.width + x) * 4;
 
-          let r = image_data.data[i + 0];
-          let g = image_data.data[i + 1];
-          let b = image_data.data[i + 2];
+            let r = image_data.data[i + 0];
+            let g = image_data.data[i + 1];
+            let b = image_data.data[i + 2];
 
-          style = RgbToHex({ r, g, b });
+            style = RgbToHex({ r, g, b });
 
-          rctx.fillStyle = style;
-          rctx.fillRect(
-            x * config.rubiks_scale,
-            y * config.rubiks_scale,
-            x + config.rubiks_scale + 1,
-            y + config.rubiks_scale + 1
-          );
+            rctx.fillStyle = style;
+            rctx.fillRect(
+              x * config.rubiks_scale,
+              y * config.rubiks_scale,
+              x + config.rubiks_scale + 1,
+              y + config.rubiks_scale + 1
+            );
+          }
         }
       }
 
