@@ -93,6 +93,10 @@
   let canvas;
   let output_canvas;
   let rubiks_canvas;
+  let thehash = "";
+
+  // to cache output
+  let cache = {};
 
   let handleDrop = function (e) {
     e.preventDefault();
@@ -146,6 +150,9 @@
 
       image_loaded = true;
 
+      // this is the only way... by clearing cache
+      cache = {};
+
       await tick();
 
       ctx.drawImage(
@@ -178,11 +185,7 @@
     }
   };
 
-  // to cache output
-  let cache = {};
-
   afterUpdate(async () => {
-    // console.log("afterupdate");
 
     if (!config.width) {
       console.log("no width, ending here");
@@ -212,24 +215,24 @@
       return;
     }
 
-    let thehash = m.hashCode(JSON.stringify(params));
+    thehash = m.hashCode(JSON.stringify(params));
 
-    if (config.cache && cache[thehash]) {
+    if (config.cache && thehash && cache[thehash]) {
       console.log("found", params.loadedfile, thehash, "from cache");
-      // console.log(cache[thehash]);
 
       let ctx = output_canvas.getContext("2d");
 
-      // let cached_image_data = ctx.createImageData(0, 0, ui.resizedwidth, ui.resizedheight)
-
-      let __ = cache[thehash];
-      let cached_image_data = new ImageData(__.data, __.width, __.height);
+      let cached_data = cache[thehash].data;
+      let cached_image_data = new ImageData(
+        cached_data.data,
+        cached_data.width,
+        cached_data.height
+      );
 
       ctx.putImageData(cached_image_data, 0, 0);
 
-      // console.log("loaded", thehash);
     } else {
-      console.log("generating...", JSON.stringify(params), thehash);
+      console.log("GENERATING IMAGE", JSON.stringify(params), thehash);
       let ctx = output_canvas.getContext("2d");
 
       ctx.drawImage(originalImage, 0, 0, ui.resizedwidth, ui.resizedheight);
@@ -297,7 +300,11 @@
 
           let pixel = m.getPixelDataRGB(image_data, x, y);
 
-          let np = m.nearestPixel2(pixel, color_array, config.gray_scale_nearest_pixel);
+          let np = m.nearestPixel2(
+            pixel,
+            color_array,
+            config.gray_scale_nearest_pixel
+          );
           // let np = m.nearestPixel(pixel, pallette);
 
           if (config.dithering == "") {
@@ -425,10 +432,6 @@
 
       ctx.putImageData(image_data, 0, 0);
 
-      // todo: cache the result in cache
-      // 1. generate a unique key based on config
-      // 2. store the image_data in cache with a hash of the config
-
       if (config.cache) {
         let tocache = new ImageData(
           new Uint8ClampedArray(image_data.data),
@@ -437,12 +440,13 @@
         );
 
         console.log("adding", thehash, "to cache");
-        console.log(tocache);
 
-        cache[thehash] = tocache;
+        cache[thehash] = {
+          data: tocache,
+          params: Object.assign({}, params),
+          config: Object.assign({}, config),
+        };
       }
-      // console.log(image_data);
-      // console.log(tocache);
     }
 
     if (config.show_rubiks) {
