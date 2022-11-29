@@ -41,6 +41,10 @@
     cache: true,
     cap: false,
     pixelated: true,
+    has_mockup: false,
+    mockup_pixel_size: 1,
+    mockup_x: 0,
+    mockup_y: 0,
     width: 0,
     height: 0,
     dithering: "pattern",
@@ -69,6 +73,7 @@
     matrix: config.matrix,
   };
 
+
   $: debug = (
     "UI = " +
     JSON.stringify(ui) +
@@ -76,11 +81,16 @@
     JSON.stringify(params) +
     "\nCONFIG:" +
     JSON.stringify(config)
+     +
+     "CLIENT WIDTH:" + bgcanvas_clientWidth
   ).replaceAll(",", ", ");
 
   let ui = {
     current: "",
     hovering: false,
+    mockup_hovering: false,
+    mockupheight: 100,
+    mockupwidth: 100,
     show_debug: false,
     resizedwidth: 0,
     resizedheight: 0,
@@ -90,7 +100,12 @@
   };
 
   /* bound variables */
+
+  let bgcanvas_clientWidth;
+  let bgcanvas_clientHeight;
+
   let canvas;
+  let bgcanvas;
   let output_canvas;
   let rubiks_canvas;
   let thehash = "";
@@ -132,7 +147,65 @@
     ui.hovering = false;
   };
 
+  let handleMockupDrop = function (e) {
+    e.preventDefault();
+
+    let ev = e;
+
+    if (ev.dataTransfer.items) {
+      if (ev.dataTransfer.items.length == 1) {
+        let item = ev.dataTransfer.items[0];
+
+        // If dropped items aren't files, reject them
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+
+          config.has_mockup = true;
+
+          loadImageOnBackgroundCanvas(file);
+        } else {
+          console.log("kind is not file, but: " + item.kind);
+        }
+      } else {
+        debug = "Error: can only load one file";
+      }
+    }
+
+    ui.mockup_hovering = false;
+  };
+
+  let handleMockupDragEnter = function () {
+    console.log("drag enter");
+    ui.mockup_hovering = true;
+  };
+
+  let handleMockupDragLeave = function () {
+    ui.mockup_hovering = false;
+  };
+
   let originalImage;
+
+  let bgImage;
+
+  let loadImageOnBackgroundCanvas = function (file) {
+    // empty cache
+    let ctx = bgcanvas.getContext("2d");
+    bgImage = new Image();
+
+    bgImage.onload = async function () {
+
+      await tick();
+
+      ui.mockupheight = bgImage.height;
+      ui.mockupwidth = bgImage.width;
+
+      await tick();
+
+      ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
+    };
+
+    bgImage.src = URL.createObjectURL(file);
+  };
 
   let loadImageOnCanvas = function (file) {
     // empty cache
@@ -186,7 +259,6 @@
   };
 
   afterUpdate(async () => {
-
     if (!config.width) {
       console.log("no width, ending here");
       return;
@@ -230,7 +302,6 @@
       );
 
       ctx.putImageData(cached_image_data, 0, 0);
-
     } else {
       console.log("GENERATING IMAGE", JSON.stringify(params), thehash);
       let ctx = output_canvas.getContext("2d");
@@ -528,6 +599,13 @@
             toggleUI("rubiks");
           }}>Rubiks</button
         >
+        <button
+          class:bg-gray-400={ui.current == "mockup"}
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            toggleUI("mockup");
+          }}>Mock Up</button
+        >
         <div class="spacer" />
 
         <Toggle bind:checked={ui.show_debug} text="debug" />
@@ -577,6 +655,38 @@
             <span>{config.grid_size}</span>
           </div>
         </div>
+      </div>
+    {/if}
+
+    {#if ui.current == "mockup"}
+      <div class="bg-white text-black p-2">
+        <div
+          style="height: 100px;"
+          ondragover="return false"
+          on:drop={handleMockupDrop}
+          on:dragenter={handleMockupDragEnter}
+          on:dragleave={handleMockupDragLeave}
+          id="mockup_drop_zone"
+          class="bg-red-500 h-full p-4"
+        >
+          {#if !ui.mockup_hovering}
+            Drop Mock Up Image here
+          {:else}
+            Release to load file
+          {/if}
+        </div>
+
+        Mock Up Pixel
+        <input type="range" bind:value={config.mockup_pixel_size} min="1" max="25" />
+        <span>{config.mockup_pixel_size}</span>
+
+        <br>
+        Mock Up Position
+        <input type="range" bind:value={config.mockup_x} min="-500" max="500" />
+        <span>{config.mockup_x}</span>
+
+        <input type="range" bind:value={config.mockup_y} min="-500" max="500" />
+        <span>{config.mockup_y}</span>
       </div>
     {/if}
 
@@ -712,14 +822,37 @@
               height={ui.resizedheight}
               bind:this={output_canvas}
             />
-            <canvas
-              class:shown={image_loaded && config.show_rubiks}
-              class:pixelated={config.pixelated}
-              id="rubiks_canvas"
-              width={ui.resizedwidth * config.rubiks_scale}
-              height={ui.resizedheight * config.rubiks_scale}
-              bind:this={rubiks_canvas}
-            />
+            <div style="position: relative" id="canvas_wrapper">
+              <canvas
+                style="position: absolute;"
+                class:shown={config.has_mockup}
+                id="bgcanvas"
+                width={ui.mockupwidth}
+                height={ui.mockupheight}
+                bind:this={bgcanvas}
+                bind:clientHeight={bgcanvas_clientHeight}
+                bind:clientWidth={bgcanvas_clientWidth}
+              />
+              
+              <!--
+                top = (pos y / 100) x (canvas height) - (half of canvas height)
+                left = (pos x / 100) x (canvas width) - (half of canvas width)
+              -->
+              <canvas
+                style="position: absolute;
+                top: {(bgcanvas_clientHeight / 2 - (ui.resizedheight * config.mockup_pixel_size * bgcanvas_clientWidth / ui.mockupwidth / 2)) + (config.mockup_y*bgcanvas_clientWidth/ui.mockupwidth)}px;
+                left: {(bgcanvas_clientWidth / 2 - (ui.resizedwidth * config.mockup_pixel_size * bgcanvas_clientWidth / ui.mockupwidth / 2)) + (config.mockup_x*bgcanvas_clientWidth/ui.mockupwidth)}px;
+                width: {ui.resizedwidth * config.mockup_pixel_size * bgcanvas_clientWidth / ui.mockupwidth}px"
+                class:shown={image_loaded && config.show_rubiks}
+                class:pixelated={config.pixelated}
+                id="rubiks_canvas"
+                width={ui.resizedwidth *
+                  config.rubiks_scale}
+                height={ui.resizedheight *
+                  config.rubiks_scale}
+                bind:this={rubiks_canvas}
+              />
+            </div>
           </div>
         </div>
 
@@ -737,6 +870,9 @@
       Image Size: {ui.resizedwidth} x {ui.resizedheight} = {ui.resizedwidth *
         ui.resizedheight}
       | Total Rubiks: {(ui.resizedheight * ui.resizedwidth) / 9}
+
+      WIDTH: {bgcanvas_clientWidth}
+      HEIGHT: {bgcanvas_clientHeight}
     {/if}
   </div>
 </main>
@@ -749,6 +885,7 @@
     overflow: hidden;
   }
   #canvas,
+  #bgcanvas,
   #rubiks_canvas {
     display: none;
   }
@@ -757,6 +894,7 @@
     display: inline;
   }
   #canvas.shown,
+  #bgcanvas.shown,
   #rubiks_canvas.shown {
     display: inline-block;
   }
