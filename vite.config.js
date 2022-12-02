@@ -7,5 +7,5 @@ export default defineConfig({
   build: {
     outDir: "."
   },
-  base: '/https://lianhuilui.github.io/rubiksim/'
+  base: 'https://lianhuilui.github.io/rubiksim/'
 })
