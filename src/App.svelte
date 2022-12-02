@@ -73,16 +73,15 @@
     matrix: config.matrix,
   };
 
-
   $: debug = (
     "UI = " +
     JSON.stringify(ui) +
     "\nparams: " +
     JSON.stringify(params) +
     "\nCONFIG:" +
-    JSON.stringify(config)
-     +
-     "CLIENT WIDTH:" + bgcanvas_clientWidth
+    JSON.stringify(config) +
+    "CLIENT WIDTH:" +
+    bgcanvas_clientWidth
   ).replaceAll(",", ", ");
 
   let ui = {
@@ -193,7 +192,6 @@
     bgImage = new Image();
 
     bgImage.onload = async function () {
-
       await tick();
 
       ui.mockupheight = bgImage.height;
@@ -677,10 +675,15 @@
         </div>
 
         Mock Up Pixel
-        <input type="range" bind:value={config.mockup_pixel_size} min="1" max="25" />
+        <input
+          type="range"
+          bind:value={config.mockup_pixel_size}
+          min="1"
+          max="25"
+        />
         <span>{config.mockup_pixel_size}</span>
 
-        <br>
+        <br />
         Mock Up Position
         <input type="range" bind:value={config.mockup_x} min="-500" max="500" />
         <span>{config.mockup_x}</span>
@@ -800,7 +803,7 @@
         on:dragenter={handleDragEnter}
         on:dragleave={handleDragLeave}
         id="drop_zone"
-        class="bg-black h-full"
+        class="bg-white h-full"
       >
         <div class="flex">
           <div class="flex-col">
@@ -833,23 +836,36 @@
                 bind:clientHeight={bgcanvas_clientHeight}
                 bind:clientWidth={bgcanvas_clientWidth}
               />
-              
+
               <!--
                 top = (pos y / 100) x (canvas height) - (half of canvas height)
                 left = (pos x / 100) x (canvas width) - (half of canvas width)
               -->
               <canvas
                 style="position: absolute;
-                top: {(bgcanvas_clientHeight / 2 - (ui.resizedheight * config.mockup_pixel_size * bgcanvas_clientWidth / ui.mockupwidth / 2)) + (config.mockup_y*bgcanvas_clientWidth/ui.mockupwidth)}px;
-                left: {(bgcanvas_clientWidth / 2 - (ui.resizedwidth * config.mockup_pixel_size * bgcanvas_clientWidth / ui.mockupwidth / 2)) + (config.mockup_x*bgcanvas_clientWidth/ui.mockupwidth)}px;
-                width: {ui.resizedwidth * config.mockup_pixel_size * bgcanvas_clientWidth / ui.mockupwidth}px"
+                top: {bgcanvas_clientHeight / 2 -
+                  (ui.resizedheight *
+                    config.mockup_pixel_size *
+                    bgcanvas_clientWidth) /
+                    ui.mockupwidth /
+                    2 +
+                  (config.mockup_y * bgcanvas_clientWidth) / ui.mockupwidth}px;
+                left: {bgcanvas_clientWidth / 2 -
+                  (ui.resizedwidth *
+                    config.mockup_pixel_size *
+                    bgcanvas_clientWidth) /
+                    ui.mockupwidth /
+                    2 +
+                  (config.mockup_x * bgcanvas_clientWidth) / ui.mockupwidth}px;
+                width: {(ui.resizedwidth *
+                  config.mockup_pixel_size *
+                  bgcanvas_clientWidth) /
+                  ui.mockupwidth}px"
                 class:shown={image_loaded && config.show_rubiks}
                 class:pixelated={config.pixelated}
                 id="rubiks_canvas"
-                width={ui.resizedwidth *
-                  config.rubiks_scale}
-                height={ui.resizedheight *
-                  config.rubiks_scale}
+                width={ui.resizedwidth * config.rubiks_scale}
+                height={ui.resizedheight * config.rubiks_scale}
                 bind:this={rubiks_canvas}
               />
             </div>
@@ -886,7 +902,9 @@
   }
   #canvas,
   #bgcanvas,
-  #rubiks_canvas {
+  #rubiks_canvas,
+  #output_canvas
+  {
     display: none;
   }
   .small {
@@ -906,6 +924,18 @@
     width: 100vw;
   }
   #rubiks_canvas {
+    box-shadow:
+      -1px 1px 0 rgba(160, 160, 160, 0.1),
+      1px -1px 0 rgba(255, 255, 255, 0.1),
+      -1px 0px 1px rgba(60, 60, 60, 0.8),
+      -2px 1px 1px rgba(60, 60, 60, 0.7),
+      -3px 2px 1px rgba(60, 60, 60, 0.65),
+      -4px 3px 1px rgba(60, 60, 60, 0.6),
+      -4px 4px 2px rgba(60, 60, 60, 0.5),
+      -4px 5px 3px rgba(60, 60, 60, 0.4),
+      -4px 6px 4px rgba(60, 60, 60, 0.333),
+      -8px 7px 5px rgba(60, 60, 60, 0.25),
+      -9px 8px 6px rgba(60, 60, 60, 0.2222222222)
   }
   .slider-wrapper > * {
     margin: 4px;
