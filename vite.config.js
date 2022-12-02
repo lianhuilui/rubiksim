@@ -6,5 +6,6 @@ export default defineConfig({
   plugins: [svelte()],
   build: {
     outDir: "."
-  }
+  },
+  base: '/https://lianhuilui.github.io/rubiksim/'
 })
