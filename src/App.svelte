@@ -59,6 +59,7 @@
     individual_pallette_colors: [],
     debug_range: -1,
     matrix: matrices[0],
+    live_capture: false,
   };
 
   $: params = {
@@ -85,7 +86,7 @@
   ).replaceAll(",", ", ");
 
   let ui = {
-    current: "",
+    current: "mockup",
     hovering: false,
     mockup_hovering: false,
     mockupheight: 100,
@@ -106,11 +107,71 @@
   let canvas;
   let bgcanvas;
   let output_canvas;
+  let videocanvas;
+  let videocanvas_w;
+  let videocanvas_h;
   let rubiks_canvas;
   let thehash = "";
 
   // to cache output
   let cache = {};
+
+  let video;
+  async function startCapture(displayMediaOptions) {
+    let captureStream = null;
+
+    try {
+      captureStream = await navigator.mediaDevices.getDisplayMedia(
+        displayMediaOptions
+      );
+
+      video.srcObject = captureStream;
+    } catch (err) {
+      console.error(`Error: ${err}`);
+    }
+
+    let f = () => {
+      if (ontick) {
+
+        if (config.live_capture) {
+          ontick();
+        } else {
+          // console.log("no click, live capture is off");
+        }
+
+        let fps = 15;
+        setTimeout(f, 1000 / fps);
+      } else {
+        // console.log("notick is null. stopping");
+      }
+    };
+
+    f();
+  }
+
+  let capture = async function () {
+    if (videocanvas) {
+      console.log("videocanvas is not null");
+
+      let ctx = videocanvas.getContext("2d");
+
+      console.log(video.videoWidth, video.videoHeight);
+
+      await tick();
+
+      let max_width = 300;
+      let max_height = max_width * video.videoHeight / video.videoWidth;
+
+      videocanvas_w = max_width;
+      videocanvas_h = max_height;
+
+      ctx.drawImage(video, 0, 0, max_width, max_height);
+
+      loadImageOnCanvas2(videocanvas);
+    } else {
+      console.log("videocanvas is null");
+    }
+  };
 
   let handleDrop = function (e) {
     e.preventDefault();
@@ -186,9 +247,14 @@
 
   let bgImage;
 
+  let mockupImage;
+
+  let ontick = null;
+
   let loadImageOnBackgroundCanvas = function (file) {
     // empty cache
     let ctx = bgcanvas.getContext("2d");
+    let mockupImageCtx = mockupImage.getContext("2d");
     bgImage = new Image();
 
     bgImage.onload = async function () {
@@ -200,6 +266,14 @@
       await tick();
 
       ctx.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height);
+
+      mockupImageCtx.drawImage(
+        bgImage,
+        0,
+        0,
+        200,
+        (200 * bgImage.height) / bgImage.width
+      );
     };
 
     bgImage.src = URL.createObjectURL(file);
@@ -236,6 +310,34 @@
     };
 
     originalImage.src = URL.createObjectURL(file);
+  };
+
+  let loadImageOnCanvas2 = function (fromcanvas) {
+    let ctx = canvas.getContext("2d");
+
+    originalImage = new Image();
+
+    originalImage.onload = async function () {
+      ui.canvasheight = originalImage.height;
+      ui.canvaswidth = originalImage.width;
+
+      image_loaded = true;
+
+      // this is the only way... by clearing cache
+      cache = {};
+
+      await tick();
+
+      ctx.drawImage(
+        originalImage,
+        0,
+        0,
+        originalImage.width,
+        originalImage.height
+      );
+    };
+
+    originalImage.src = fromcanvas.toDataURL("image/png");
   };
 
   let setPallette = function (color) {
@@ -566,7 +668,7 @@
 </script>
 
 <main>
-  <div class="flex flex-col bg-red-800 h-screen">
+  <div class="flex flex-col bg-blue-800 h-screen">
     <div class="bg-white text-black p-2">
       <div class="flex">
         <button
@@ -603,6 +705,21 @@
           on:click={() => {
             toggleUI("mockup");
           }}>Mock Up</button
+        >
+
+        <button
+          class:bg-gray-400={ui.current == "screen_capture" ||
+            config.live_capture}
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            toggleUI("screen_capture");
+          }}>ScreenCapture</button
+        >
+        <button
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            capture();
+          }}>Capture</button
         >
         <div class="spacer" />
 
@@ -659,7 +776,7 @@
     {#if ui.current == "mockup"}
       <div class="bg-white text-black p-2">
         <div
-          style="height: 100px;"
+          style="height: auto"
           ondragover="return false"
           on:drop={handleMockupDrop}
           on:dragenter={handleMockupDragEnter}
@@ -668,10 +785,12 @@
           class="bg-red-500 h-full p-4"
         >
           {#if !ui.mockup_hovering}
-            Drop Mock Up Image here
+            Drop MockUp Image here
           {:else}
             Release to load file
           {/if}
+
+          <canvas bind:this={mockupImage} style="width: auto" />
         </div>
 
         Mock Up Pixel
@@ -690,6 +809,39 @@
 
         <input type="range" bind:value={config.mockup_y} min="-500" max="500" />
         <span>{config.mockup_y}</span>
+      </div>
+    {/if}
+
+    {#if ui.current == "screen_capture" || config.live_capture}
+    
+    <div class="flex">
+
+      <button
+        class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+        on:click={() => {
+          ontick = capture;
+          startCapture();
+        }}>Start Capture</button
+      >
+
+      <button
+        class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+        on:click={() => {
+          capture();
+        }}>Take Screenshot</button
+      >
+
+      <Toggle text="Live Capture" bind:checked={config.live_capture} />
+
+    </div>
+      <div class="flex">
+        <video style="width: 10%" autoplay bind:this={video} />
+        <canvas
+          style="width: 10%"
+          bind:this={videocanvas}
+          width={videocanvas_w}
+          height={videocanvas_h}
+        />
       </div>
     {/if}
 
@@ -841,33 +993,46 @@
                 top = (pos y / 100) x (canvas height) - (half of canvas height)
                 left = (pos x / 100) x (canvas width) - (half of canvas width)
               -->
-              <canvas
-                style="position: absolute;
+              {#if config.has_mockup}
+                <canvas
+                  style="position: absolute;
                 top: {bgcanvas_clientHeight / 2 -
-                  (ui.resizedheight *
-                    config.mockup_pixel_size *
-                    bgcanvas_clientWidth) /
-                    ui.mockupwidth /
-                    2 +
-                  (config.mockup_y * bgcanvas_clientWidth) / ui.mockupwidth}px;
+                    (ui.resizedheight *
+                      config.mockup_pixel_size *
+                      bgcanvas_clientWidth) /
+                      ui.mockupwidth /
+                      2 +
+                    (config.mockup_y * bgcanvas_clientWidth) /
+                      ui.mockupwidth}px;
                 left: {bgcanvas_clientWidth / 2 -
-                  (ui.resizedwidth *
+                    (ui.resizedwidth *
+                      config.mockup_pixel_size *
+                      bgcanvas_clientWidth) /
+                      ui.mockupwidth /
+                      2 +
+                    (config.mockup_x * bgcanvas_clientWidth) /
+                      ui.mockupwidth}px;
+                width: {(ui.resizedwidth *
                     config.mockup_pixel_size *
                     bgcanvas_clientWidth) /
-                    ui.mockupwidth /
-                    2 +
-                  (config.mockup_x * bgcanvas_clientWidth) / ui.mockupwidth}px;
-                width: {(ui.resizedwidth *
-                  config.mockup_pixel_size *
-                  bgcanvas_clientWidth) /
-                  ui.mockupwidth}px"
-                class:shown={image_loaded && config.show_rubiks}
-                class:pixelated={config.pixelated}
-                id="rubiks_canvas"
-                width={ui.resizedwidth * config.rubiks_scale}
-                height={ui.resizedheight * config.rubiks_scale}
-                bind:this={rubiks_canvas}
-              />
+                    ui.mockupwidth}px"
+                  class:shown={image_loaded && config.show_rubiks}
+                  class:pixelated={config.pixelated}
+                  id="rubiks_canvas"
+                  width={ui.resizedwidth * config.rubiks_scale}
+                  height={ui.resizedheight * config.rubiks_scale}
+                  bind:this={rubiks_canvas}
+                />
+              {:else}
+                <canvas
+                  class:shown={image_loaded && config.show_rubiks}
+                  class:pixelated={config.pixelated}
+                  id="rubiks_canvas"
+                  width={ui.resizedwidth * config.rubiks_scale}
+                  height={ui.resizedheight * config.rubiks_scale}
+                  bind:this={rubiks_canvas}
+                />
+              {/if}
             </div>
           </div>
         </div>
@@ -903,8 +1068,7 @@
   #canvas,
   #bgcanvas,
   #rubiks_canvas,
-  #output_canvas
-  {
+  #output_canvas {
     display: none;
   }
   .small {
@@ -924,18 +1088,13 @@
     width: 100vw;
   }
   #rubiks_canvas {
-    box-shadow:
-      -1px 1px 0 rgba(160, 160, 160, 0.1),
-      1px -1px 0 rgba(255, 255, 255, 0.1),
-      -1px 0px 1px rgba(60, 60, 60, 0.8),
-      -2px 1px 1px rgba(60, 60, 60, 0.7),
-      -3px 2px 1px rgba(60, 60, 60, 0.65),
-      -4px 3px 1px rgba(60, 60, 60, 0.6),
-      -4px 4px 2px rgba(60, 60, 60, 0.5),
-      -4px 5px 3px rgba(60, 60, 60, 0.4),
-      -4px 6px 4px rgba(60, 60, 60, 0.333),
+    box-shadow: -1px 1px 0 rgba(160, 160, 160, 0.1),
+      1px -1px 0 rgba(255, 255, 255, 0.1), -1px 0px 1px rgba(60, 60, 60, 0.8),
+      -2px 1px 1px rgba(60, 60, 60, 0.7), -3px 2px 1px rgba(60, 60, 60, 0.65),
+      -4px 3px 1px rgba(60, 60, 60, 0.6), -4px 4px 2px rgba(60, 60, 60, 0.5),
+      -4px 5px 3px rgba(60, 60, 60, 0.4), -4px 6px 4px rgba(60, 60, 60, 0.333),
       -8px 7px 5px rgba(60, 60, 60, 0.25),
-      -9px 8px 6px rgba(60, 60, 60, 0.2222222222)
+      -9px 8px 6px rgba(60, 60, 60, 0.2222222222);
   }
   .slider-wrapper > * {
     margin: 4px;

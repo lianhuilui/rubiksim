@@ -5,7 +5,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 export default defineConfig({
   plugins: [svelte()],
   build: {
-    outDir: "."
+    outDir: ".."
   },
-  base: 'https://lianhuilui.github.io/rubiksim/'
+  root: "src",
+  base: '/rubiksim/'
 })
