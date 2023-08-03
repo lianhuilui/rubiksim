@@ -86,7 +86,7 @@
   ).replaceAll(",", ", ");
 
   let ui = {
-    current: "mockup",
+    current: "",
     hovering: false,
     mockup_hovering: false,
     mockupheight: 100,
@@ -151,11 +151,11 @@
 
   let capture = async function () {
     if (videocanvas) {
-      console.log("videocanvas is not null");
+      // console.log("videocanvas is not null");
 
       let ctx = videocanvas.getContext("2d");
 
-      console.log(video.videoWidth, video.videoHeight);
+      // console.log(video.videoWidth, video.videoHeight);
 
       await tick();
 
@@ -169,7 +169,7 @@
 
       loadImageOnCanvas2(videocanvas);
     } else {
-      console.log("videocanvas is null");
+      // console.log("videocanvas is null");
     }
   };
 
@@ -278,6 +278,13 @@
 
     bgImage.src = URL.createObjectURL(file);
   };
+
+  let removeImageFromBackgroundCanvas = function() {
+      config.has_mockup = false;
+      bgImage.src = null;
+      let mockupImageCtx = mockupImage.getContext("2d");
+      mockupImageCtx.clearRect(0, 0, mockupImage.width, mockupImage.height);
+  }
 
   let loadImageOnCanvas = function (file) {
     // empty cache
@@ -676,7 +683,7 @@
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("img");
-          }}>Output Image</button
+          }}>Output&nbsp;Image</button
         >
         <button
           class:bg-gray-400={ui.current == "pallette"}
@@ -701,10 +708,10 @@
         >
         <button
           class:bg-gray-400={ui.current == "mockup"}
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("mockup");
-          }}>Mock Up</button
+          }}>Mock&nbsp;Up</button
         >
 
         <button
@@ -713,10 +720,10 @@
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("screen_capture");
-          }}>ScreenCapture</button
+          }}>Screen&nbsp;Cap</button
         >
         <button
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             capture();
           }}>Capture</button
@@ -788,6 +795,10 @@
             Drop MockUp Image here
           {:else}
             Release to load file
+          {/if}
+
+          {#if config.has_mockup}
+            <button on:click={removeImageFromBackgroundCanvas} class="p-2 border-[1px] border-black">Remove mockup</button>
           {/if}
 
           <canvas bind:this={mockupImage} style="width: auto" />
@@ -957,6 +968,11 @@
         id="drop_zone"
         class="bg-white h-full"
       >
+                {#if !image_loaded}
+                    <div style="width: 100%; height: 100%; border: 1px solid black; background: #ccc; text-align: center;">
+                        Drop Image Here
+                    </div>
+                {/if}
         <div class="flex">
           <div class="flex-col">
             <canvas
@@ -976,6 +992,7 @@
               width={ui.resizedwidth}
               height={ui.resizedheight}
               bind:this={output_canvas}
+                            style="border: 4px solid red;"
             />
             <div style="position: relative" id="canvas_wrapper">
               <canvas
