@@ -1069,8 +1069,10 @@
         ui.resizedheight}
       | Total Rubiks: {(ui.resizedheight * ui.resizedwidth) / 9}
 
+            <!--
       WIDTH: {bgcanvas_clientWidth}
       HEIGHT: {bgcanvas_clientHeight}
+            -->
     {/if}
   </div>
 </main>
