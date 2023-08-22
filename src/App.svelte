@@ -40,17 +40,17 @@
     loadedfile: "",
     cache: true,
     cap: false,
-    pixelated: true,
+    pixelated: false,
     has_mockup: false,
     mockup_pixel_size: 1,
     mockup_x: 0,
     mockup_y: 0,
     width: 0,
     height: 0,
-    dithering: "pattern",
+    dithering: "fs",
     max_width: 600,
     show_rubiks: true,
-    show_grid: false,
+    show_grid: true,
     rubiks_scale: 8,
     gray_scale_input: false,
     gray_scale_nearest_pixel: false,
@@ -675,16 +675,18 @@
 </script>
 
 <main>
-  <div class="flex flex-col bg-blue-800 h-screen">
+  <div class="flex flex-col h-screen">
     <div class="bg-white text-black p-2">
       <div class="flex">
+        {#if false}
         <button
           class:bg-gray-400={ui.current == "img"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("img");
-          }}>Output&nbsp;Image</button
+          }}>Output</button
         >
+        {/if}
         <button
           class:bg-gray-400={ui.current == "pallette"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
@@ -720,7 +722,7 @@
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("screen_capture");
-          }}>Screen&nbsp;Cap</button
+          }}>Screen&nbsp;Capture</button
         >
         <button
           class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
@@ -737,22 +739,12 @@
     {#if ui.current == "img"}
       <div class="bg-white text-black p-2">
         <div class="flex flex-col">
-          <div class="flex slider-wrapper">
-            <span>Width</span>
-            <input
-              style="flex: 1"
-              type="range"
-              bind:value={config.width}
-              min="3"
-              max={config.max_width}
-              step="3"
-            />
-            <span>{config.width}</span>
-          </div>
           <div class="flex">
             <div class="d-block">
+            {#if false}
               <Toggle text="Pixelated" bind:checked={config.pixelated} />
               <Toggle text="Cache" bind:checked={config.cache} />
+            {/if}
             </div>
           </div>
         </div>
@@ -763,10 +755,24 @@
       <div class="bg-white text-black p-2">
         <div class="flex flex-col">
           <div class="flex">
+            {#if false}
             <Toggle bind:checked={config.show_rubiks} text="rubiks" />
+            {/if}
             <Toggle text="Show Grid" bind:checked={config.show_grid} />
           </div>
-          <div class="flex">
+          <div class="flex slider-wrapper">
+            <span class="p-2">Output Width</span>
+            <input
+              style="flex: 1"
+              type="range"
+              bind:value={config.width}
+              min="3"
+              max={config.max_width}
+              step="3"
+            />
+            <span>{config.width}</span>
+          </div>
+          <div class="flex" style="display: none">
             Scale
             <input type="range" bind:value={config.rubiks_scale} max="40" />
             <span>{config.rubiks_scale}</span>
@@ -860,28 +866,35 @@
       <div class="bg-white text-black p-2">
         <div class="flex">
           <span class="p-2">Input Image:</span>
-          <Toggle text="Gray" bind:checked={config.gray_scale_input} />
+          <Toggle text="Gray Scale" bind:checked={config.gray_scale_input} />
         </div>
         <div class="flex">
-          <span class="p-2">Nearest Pixel:</span>
+          <span class="p-2">Nearest Pixel Calculation:</span>
           <Toggle
-            text="Nearest Gray Pixel"
+            text="Use Gray Value"
             bind:checked={config.gray_scale_nearest_pixel}
           />
         </div>
+        
         <div class="flex">
+          <span class="p-2">Dithering:</span>
           <Toggle
-            text="No Dithering"
+            text="None"
             checked={config.dithering == ""}
             on:click={() => (config.dithering = "")}
           />
           <Toggle
-            text="Patterned Dithering"
+            text="Floyd Steinberg"
+            on:click={() => (config.dithering = "fs")}
+            checked={config.dithering == "fs"}
+          />
+          <Toggle
+            text="Patterned"
             checked={config.dithering == "pattern"}
             on:click={() => (config.dithering = "pattern")}
           />
           {#if config.dithering == "pattern"}
-            <span class="h-10 p-2"> Matrix: </span>
+            <span class="h-10 p-2"> Matrix Size: </span>
             {#each matrices as m}
               <button
                 class:bg-green-600={config.matrix == m}
@@ -894,11 +907,6 @@
               </button>
             {/each}
           {/if}
-          <Toggle
-            text="Floyd Steinberg"
-            on:click={() => (config.dithering = "fs")}
-            checked={config.dithering == "fs"}
-          />
         </div>
       </div>
     {/if}
@@ -931,6 +939,7 @@
 
     {#if ui.show_debug}
       <code>{debug}</code>
+      {#if false}
       <input
         type="range"
         bind:value={config.debug_range}
@@ -938,23 +947,27 @@
         max={ui.total_pixels}
         step="1"
       />
-      {#if config.dithering == "pattern"}
-        {#each config.matrix as row}
-          <div class="flex">
-            {#each row as cell}
-              <input
-                type="range"
-                bind:value={cell}
-                step="0.01"
-                max="1.0"
-                min="0.0"
-              />
-              {cell}
-            {/each}
-          </div>
-        {/each}
       {/if}
-      {#if config.dithering == "fs"}
+      {#if config.dithering == "pattern"}
+        Matrix Vectors
+        <div class={`grid grid-cols-${config.matrix[0].length} w-fit`}>
+          {#each config.matrix as row}
+            {#each row as cell}
+              <div class="p-2">
+                  <input
+                    type="range"
+                    bind:value={cell}
+                    step="0.01"
+                    max="1.0"
+                    min="0.0"
+                  />
+                  {cell}
+              </div>
+            {/each}
+          {/each}
+        </div>
+      {/if}
+      {#if config.dithering == "fs" && false}
         <Toggle text="Cap" bind:checked={config.cap} />
       {/if}
     {/if}
@@ -1067,7 +1080,7 @@
     {#if ui.resizedheight && ui.resizedwidth}
       Image Size: {ui.resizedwidth} x {ui.resizedheight} = {ui.resizedwidth *
         ui.resizedheight}
-      | Total Rubiks: {(ui.resizedheight * ui.resizedwidth) / 9}
+      | Total Cubes Needed: {(ui.resizedheight * ui.resizedwidth) / 9}
 
             <!--
       WIDTH: {bgcanvas_clientWidth}
@@ -1107,13 +1120,14 @@
     width: 100vw;
   }
   #rubiks_canvas {
-    box-shadow: -1px 1px 0 rgba(160, 160, 160, 0.1),
+    /*box-shadow: -1px 1px 0 rgba(160, 160, 160, 0.1),
       1px -1px 0 rgba(255, 255, 255, 0.1), -1px 0px 1px rgba(60, 60, 60, 0.8),
       -2px 1px 1px rgba(60, 60, 60, 0.7), -3px 2px 1px rgba(60, 60, 60, 0.65),
       -4px 3px 1px rgba(60, 60, 60, 0.6), -4px 4px 2px rgba(60, 60, 60, 0.5),
       -4px 5px 3px rgba(60, 60, 60, 0.4), -4px 6px 4px rgba(60, 60, 60, 0.333),
       -8px 7px 5px rgba(60, 60, 60, 0.25),
       -9px 8px 6px rgba(60, 60, 60, 0.2222222222);
+          */
   }
   .slider-wrapper > * {
     margin: 4px;

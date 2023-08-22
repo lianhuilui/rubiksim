@@ -14,7 +14,7 @@
     style={checked && bgcolor ? 'background-color: ' + bgcolor + ";" : ""}
     class="h-10 p-2 {checked
         ? toggleClass
-        : ''} rounded-lg {checked ? 'border-solid' : 'border-none'} border-2 text-center"
+        : ''} rounded-lg border-solid border-[1px] text-center"
     on:click={toggle}
     on:click
 >

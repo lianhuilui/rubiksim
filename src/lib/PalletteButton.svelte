@@ -8,7 +8,7 @@
 
 <button
     on:click
-    class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+    class="p-2 rounded-lg border-solid border-2 text-center"
     class:bg-green-600={selected == color}
 >
     {name}
