@@ -8,17 +8,23 @@
   let image_loaded = false;
 
   let pallettes = [
-    { name: "rbk", colors: "#013082,#BB2328,#01B351,#FE8F25,#F5FF42,#ECF3F6" },
-    { name: "rbkng", colors: "#013082,#BB2328,#FE8F25,#F5FF42,#ECF3F6" },
-    { name: "b&w", colors: "#000,#fff" },
-    { name: "gray", colors: "#000,#666,#fff" },
     {
-      name: "grayscale",
+      name: "Rubik's Colors",
+      colors: "#013082,#BB2328,#01B351,#FE8F25,#F5FF42,#ECF3F6",
+    },
+    {
+      name: "Rubik's Colors W/O Green",
+      colors: "#013082,#BB2328,#FE8F25,#F5FF42,#ECF3F6",
+    },
+    { name: "Black & White", colors: "#000,#fff" },
+    { name: "Black, Gray, White", colors: "#000,#666,#fff" },
+    {
+      name: "Gray Scale",
       colors:
         "#000,#111,#222,#333,#444,#555,#666,#777,#888,#999,#aaa,#bbb,#ccc,#ddd,#eee,#fff",
     },
-    { name: "rgb", colors: "#000,#f00,#0f0,#00f,#fff" },
-    { name: "cmyk", colors: "#000,#0ff,#f0f,#ff0,#fff" },
+    { name: "RGB", colors: "#000,#f00,#0f0,#00f,#fff" },
+    { name: "CMYK", colors: "#000,#0ff,#f0f,#ff0,#fff" },
   ];
 
   let matrices = [
@@ -132,7 +138,6 @@
 
     let f = () => {
       if (ontick) {
-
         if (config.live_capture) {
           ontick();
         } else {
@@ -160,7 +165,7 @@
       await tick();
 
       let max_width = 300;
-      let max_height = max_width * video.videoHeight / video.videoWidth;
+      let max_height = (max_width * video.videoHeight) / video.videoWidth;
 
       videocanvas_w = max_width;
       videocanvas_h = max_height;
@@ -279,12 +284,12 @@
     bgImage.src = URL.createObjectURL(file);
   };
 
-  let removeImageFromBackgroundCanvas = function() {
-      config.has_mockup = false;
-      bgImage.src = null;
-      let mockupImageCtx = mockupImage.getContext("2d");
-      mockupImageCtx.clearRect(0, 0, mockupImage.width, mockupImage.height);
-  }
+  let removeImageFromBackgroundCanvas = function () {
+    config.has_mockup = false;
+    bgImage.src = null;
+    let mockupImageCtx = mockupImage.getContext("2d");
+    mockupImageCtx.clearRect(0, 0, mockupImage.width, mockupImage.height);
+  };
 
   let loadImageOnCanvas = function (file) {
     // empty cache
@@ -679,13 +684,13 @@
     <div class="bg-white text-black p-2">
       <div class="flex">
         {#if false}
-        <button
-          class:bg-gray-400={ui.current == "img"}
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            toggleUI("img");
-          }}>Output</button
-        >
+          <button
+            class:bg-gray-400={ui.current == "img"}
+            class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+            on:click={() => {
+              toggleUI("img");
+            }}>Output</button
+          >
         {/if}
         <button
           class:bg-gray-400={ui.current == "pallette"}
@@ -741,10 +746,10 @@
         <div class="flex flex-col">
           <div class="flex">
             <div class="d-block">
-            {#if false}
-              <Toggle text="Pixelated" bind:checked={config.pixelated} />
-              <Toggle text="Cache" bind:checked={config.cache} />
-            {/if}
+              {#if false}
+                <Toggle text="Pixelated" bind:checked={config.pixelated} />
+                <Toggle text="Cache" bind:checked={config.cache} />
+              {/if}
             </div>
           </div>
         </div>
@@ -756,7 +761,7 @@
         <div class="flex flex-col">
           <div class="flex">
             {#if false}
-            <Toggle bind:checked={config.show_rubiks} text="rubiks" />
+              <Toggle bind:checked={config.show_rubiks} text="rubiks" />
             {/if}
             <Toggle text="Show Grid" bind:checked={config.show_grid} />
           </div>
@@ -804,7 +809,10 @@
           {/if}
 
           {#if config.has_mockup}
-            <button on:click={removeImageFromBackgroundCanvas} class="p-2 border-[1px] border-black">Remove mockup</button>
+            <button
+              on:click={removeImageFromBackgroundCanvas}
+              class="p-2 border-[1px] border-black">Remove mockup</button
+            >
           {/if}
 
           <canvas bind:this={mockupImage} style="width: auto" />
@@ -830,27 +838,24 @@
     {/if}
 
     {#if ui.current == "screen_capture" || config.live_capture}
-    
-    <div class="flex">
+      <div class="flex">
+        <button
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            ontick = capture;
+            startCapture();
+          }}>Start Capture</button
+        >
 
-      <button
-        class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-        on:click={() => {
-          ontick = capture;
-          startCapture();
-        }}>Start Capture</button
-      >
+        <button
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            capture();
+          }}>Take Screenshot</button
+        >
 
-      <button
-        class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-        on:click={() => {
-          capture();
-        }}>Take Screenshot</button
-      >
-
-      <Toggle text="Live Capture" bind:checked={config.live_capture} />
-
-    </div>
+        <Toggle text="Live Capture" bind:checked={config.live_capture} />
+      </div>
       <div class="flex">
         <video style="width: 10%" autoplay bind:this={video} />
         <canvas
@@ -875,21 +880,24 @@
             bind:checked={config.gray_scale_nearest_pixel}
           />
         </div>
-        
+
         <div class="flex">
           <span class="p-2">Dithering:</span>
           <Toggle
             text="None"
+            type="radio"
             checked={config.dithering == ""}
             on:click={() => (config.dithering = "")}
           />
           <Toggle
             text="Floyd Steinberg"
+            type="radio"
             on:click={() => (config.dithering = "fs")}
             checked={config.dithering == "fs"}
           />
           <Toggle
             text="Patterned"
+            type="radio"
             checked={config.dithering == "pattern"}
             on:click={() => (config.dithering = "pattern")}
           />
@@ -897,7 +905,7 @@
             <span class="h-10 p-2"> Matrix Size: </span>
             {#each matrices as m}
               <button
-                class:bg-green-600={config.matrix == m}
+                class:bg-gray-200={config.matrix == m}
                 class="h-10 p-2 rounded-lg border-solid border-2"
                 on:click={() => {
                   config.matrix = m;
@@ -931,8 +939,10 @@
           <Toggle
             bind:checked={c.on}
             text={c.color}
-            bgcolor={c.on ? c.color : "white"}
-          />
+            toggleClass={"bg-gray-200"}
+          >
+            <div style={`background-color: ${c.color}; height: 2em;`}></div>
+          </Toggle>
         {/each}
       </div>
     {/if}
@@ -940,13 +950,13 @@
     {#if ui.show_debug}
       <code>{debug}</code>
       {#if false}
-      <input
-        type="range"
-        bind:value={config.debug_range}
-        min="-1"
-        max={ui.total_pixels}
-        step="1"
-      />
+        <input
+          type="range"
+          bind:value={config.debug_range}
+          min="-1"
+          max={ui.total_pixels}
+          step="1"
+        />
       {/if}
       {#if config.dithering == "pattern"}
         Matrix Vectors
@@ -954,14 +964,14 @@
           {#each config.matrix as row}
             {#each row as cell}
               <div class="p-2">
-                  <input
-                    type="range"
-                    bind:value={cell}
-                    step="0.01"
-                    max="1.0"
-                    min="0.0"
-                  />
-                  {cell}
+                <input
+                  type="range"
+                  bind:value={cell}
+                  step="0.01"
+                  max="1.0"
+                  min="0.0"
+                />
+                {cell}
               </div>
             {/each}
           {/each}
@@ -972,7 +982,7 @@
       {/if}
     {/if}
 
-    <div class="bg-green-800 grow justify-center">
+    <div class="bg-gray-200 grow justify-center">
       <div
         ondragover="return false"
         on:drop={handleDrop}
@@ -981,11 +991,13 @@
         id="drop_zone"
         class="bg-white h-full"
       >
-                {#if !image_loaded}
-                    <div style="width: 100%; height: 100%; border: 1px solid black; background: #ccc; text-align: center;">
-                        Drop Image Here
-                    </div>
-                {/if}
+        {#if !image_loaded}
+          <div
+            style="width: 100%; height: 100%; border: 1px solid black; background: #ccc; text-align: center;"
+          >
+            Drop Image Here
+          </div>
+        {/if}
         <div class="flex">
           <div class="flex-col">
             <canvas
@@ -1005,7 +1017,7 @@
               width={ui.resizedwidth}
               height={ui.resizedheight}
               bind:this={output_canvas}
-                            style="border: 4px solid red;"
+              style="border: 4px solid red;"
             />
             <div style="position: relative" id="canvas_wrapper">
               <canvas
@@ -1082,7 +1094,7 @@
         ui.resizedheight}
       | Total Cubes Needed: {(ui.resizedheight * ui.resizedwidth) / 9}
 
-            <!--
+      <!--
       WIDTH: {bgcanvas_clientWidth}
       HEIGHT: {bgcanvas_clientHeight}
             -->

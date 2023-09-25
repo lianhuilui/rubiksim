@@ -9,21 +9,19 @@
 <button
     on:click
     class="p-2 rounded-lg border-solid border-2 text-center"
-    class:bg-green-600={selected == color}
+    class:bg-gray-200={selected == color}
 >
+    <span class="block">
     {name}
+    </span>
 
-    <div>
+    <div class="flex border-[1px] border-black">
         {#each colors as c}
-            <span style="background-color: {c}">&nbsp;</span>
+            <div style="background-color: {c};" class="grow h-4">
+            </div>
         {/each}
     </div>
 </button>
 
 <style>
-    div {
-        display: inline;
-        width: auto;
-        border: 1px solid black;
-    }
 </style>
