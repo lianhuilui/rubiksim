@@ -147,6 +147,11 @@
       await tick();
 
       video.srcObject = captureStream;
+
+      setTimeout(() => {
+        capture();
+      }, 250) // wait a while a capture the first image
+
     } catch (err) {
       console.error(`Error: ${err}`);
     }
@@ -199,8 +204,6 @@
   let handleDrop = function (e) {
     e.preventDefault();
 
-    showVideoCanvas = false;
-
     let ev = e;
 
     if (ev.dataTransfer.items) {
@@ -222,6 +225,19 @@
 
     ui.hovering = false;
   };
+
+  let handleOpenFile = function () {
+    var input = document.createElement('input');
+    input.type = 'file';
+
+    input.onchange = e => { 
+      var file = e.target.files[0]; 
+
+      loadImageOnCanvas(file)
+    }
+
+    input.click();
+  }
 
   let handleDragEnter = function () {
     console.log("drag enter");
@@ -312,6 +328,9 @@
   };
 
   let loadImageOnCanvas = function (file) {
+
+    showVideoCanvas = false;
+
     // empty cache
     config.loadedfile = file.name;
 
@@ -713,6 +732,14 @@
           >
         {/if}
         <button
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            handleOpenFile();
+          }}
+        >
+          <i class="fa fa-folder-open" />
+        </button>
+        <button
           class:bg-gray-400={ui.current == "pallette"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
@@ -783,6 +810,8 @@
 
           <canvas
             style="width: auto; max-height: 40px; border: 1px solid black;"
+            width={videocanvas_w}
+            height={videocanvas_h}
             bind:this={videocanvas}
           />
         {/if}
