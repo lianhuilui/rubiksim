@@ -51,7 +51,7 @@
     mockup_pixel_size: 1,
     mockup_x: 0,
     mockup_y: 0,
-    width: 0,
+    width: 99,
     height: 0,
     dithering: "fs",
     max_width: 600,
@@ -123,6 +123,16 @@
   let cache = {};
 
   let video;
+
+  let usingScreenCapture = false;
+
+  let showVideoCanvas = false;
+  // $: {
+  //   if (ui.current == 'screen_capture') {
+  //     showVideoCanvas = true
+  //   }
+  // }
+
   async function startCapture(displayMediaOptions) {
     let captureStream = null;
 
@@ -130,6 +140,11 @@
       captureStream = await navigator.mediaDevices.getDisplayMedia(
         displayMediaOptions
       );
+
+      usingScreenCapture = true;
+      showVideoCanvas = true;
+
+      await tick();
 
       video.srcObject = captureStream;
     } catch (err) {
@@ -156,11 +171,11 @@
 
   let capture = async function () {
     if (videocanvas) {
-      // console.log("videocanvas is not null");
+      console.log("videocanvas is not null");
 
       let ctx = videocanvas.getContext("2d");
 
-      // console.log(video.videoWidth, video.videoHeight);
+      console.log(video.videoWidth, video.videoHeight);
 
       await tick();
 
@@ -170,16 +185,21 @@
       videocanvas_w = max_width;
       videocanvas_h = max_height;
 
+      await tick();
+
       ctx.drawImage(video, 0, 0, max_width, max_height);
 
+      console.log("loading image on video");
       loadImageOnCanvas2(videocanvas);
     } else {
-      // console.log("videocanvas is null");
+      console.log("videocanvas is null");
     }
   };
 
   let handleDrop = function (e) {
     e.preventDefault();
+
+    showVideoCanvas = false;
 
     let ev = e;
 
@@ -697,22 +717,28 @@
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("pallette");
-          }}>Pallette</button
+          }}
         >
+          <i class="fa fa-paintbrush" />
+        </button>
         <button
           class:bg-gray-400={ui.current == "processing"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("processing");
-          }}>Processing</button
+          }}
         >
+          <i class="fa fa-cog" />
+        </button>
         <button
           class:bg-gray-400={ui.current == "rubiks"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("rubiks");
-          }}>Rubiks</button
+          }}
         >
+          <i class="fa fa-table" />
+        </button>
         <button
           class:bg-gray-400={ui.current == "mockup"}
           class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
@@ -722,378 +748,405 @@
         >
 
         <button
-          class:bg-gray-400={ui.current == "screen_capture" ||
-            config.live_capture}
+          class:bg-gray-400={showVideoCanvas}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
-            toggleUI("screen_capture");
-          }}>Screen&nbsp;Capture</button
+            ontick = capture;
+            startCapture();
+          }}
         >
+          <i class="fa fa-tv" />
+        </button>
         <button
           class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             capture();
           }}>Capture</button
         >
+
+        {#if showVideoCanvas}
+          <video
+            style="max-height: 40px; border: 1px solid black"
+            autoplay
+            bind:this={video}
+          />
+          <button
+            class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+            on:click={() => {
+              capture();
+            }}
+          >
+            <i class="fa fa-camera" />
+          </button>
+
+          <Toggle text="Live" bind:checked={config.live_capture} />
+
+          <canvas
+            style="width: auto; max-height: 40px; border: 1px solid black;"
+            bind:this={videocanvas}
+          />
+        {/if}
+
         <div class="spacer" />
 
-        <Toggle bind:checked={ui.show_debug} text="debug" />
+        <Toggle bind:checked={ui.show_debug} text="Debug" />
       </div>
     </div>
 
-    {#if ui.current == "img"}
-      <div class="bg-white text-black p-2">
-        <div class="flex flex-col">
-          <div class="flex">
-            <div class="d-block">
-              {#if false}
-                <Toggle text="Pixelated" bind:checked={config.pixelated} />
-                <Toggle text="Cache" bind:checked={config.cache} />
-              {/if}
+    <div class="main relative h-full" style="">
+      <div class="bg-white shadow-md absolute z-10 pb-2">
+        {#if ui.current == "img"}
+          <div class="text-black p-2">
+            <div class="flex flex-col">
+              <div class="flex">
+                <div class="d-block">
+                  {#if false}
+                    <Toggle text="Pixelated" bind:checked={config.pixelated} />
+                    <Toggle text="Cache" bind:checked={config.cache} />
+                  {/if}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    {/if}
+        {/if}
 
-    {#if ui.current == "rubiks"}
-      <div class="bg-white text-black p-2">
-        <div class="flex flex-col">
-          <div class="flex">
-            {#if false}
-              <Toggle bind:checked={config.show_rubiks} text="rubiks" />
-            {/if}
-            <Toggle text="Show Grid" bind:checked={config.show_grid} />
-          </div>
-          <div class="flex slider-wrapper">
-            <span class="p-2">Output Width</span>
-            <input
-              style="flex: 1"
-              type="range"
-              bind:value={config.width}
-              min="3"
-              max={config.max_width}
-              step="3"
-            />
-            <span>{config.width}</span>
-          </div>
-          <div class="flex" style="display: none">
-            Scale
-            <input type="range" bind:value={config.rubiks_scale} max="40" />
-            <span>{config.rubiks_scale}</span>
-
-            <span style="margin-left: 10px">&nbsp;</span>
-            Grid Size
-            <input type="range" bind:value={config.grid_size} max="10" />
-            <span>{config.grid_size}</span>
-          </div>
-        </div>
-      </div>
-    {/if}
-
-    {#if ui.current == "mockup"}
-      <div class="bg-white text-black p-2">
-        <div
-          style="height: auto"
-          ondragover="return false"
-          on:drop={handleMockupDrop}
-          on:dragenter={handleMockupDragEnter}
-          on:dragleave={handleMockupDragLeave}
-          id="mockup_drop_zone"
-          class="bg-red-500 h-full p-4"
-        >
-          {#if !ui.mockup_hovering}
-            Drop MockUp Image here
-          {:else}
-            Release to load file
-          {/if}
-
-          {#if config.has_mockup}
-            <button
-              on:click={removeImageFromBackgroundCanvas}
-              class="p-2 border-[1px] border-black">Remove mockup</button
-            >
-          {/if}
-
-          <canvas bind:this={mockupImage} style="width: auto" />
-        </div>
-
-        Mock Up Pixel
-        <input
-          type="range"
-          bind:value={config.mockup_pixel_size}
-          min="1"
-          max="25"
-        />
-        <span>{config.mockup_pixel_size}</span>
-
-        <br />
-        Mock Up Position
-        <input type="range" bind:value={config.mockup_x} min="-500" max="500" />
-        <span>{config.mockup_x}</span>
-
-        <input type="range" bind:value={config.mockup_y} min="-500" max="500" />
-        <span>{config.mockup_y}</span>
-      </div>
-    {/if}
-
-    {#if ui.current == "screen_capture" || config.live_capture}
-      <div class="flex">
-        <button
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            ontick = capture;
-            startCapture();
-          }}>Start Capture</button
-        >
-
-        <button
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            capture();
-          }}>Take Screenshot</button
-        >
-
-        <Toggle text="Live Capture" bind:checked={config.live_capture} />
-      </div>
-      <div class="flex">
-        <video style="width: 10%" autoplay bind:this={video} />
-        <canvas
-          style="width: 10%"
-          bind:this={videocanvas}
-          width={videocanvas_w}
-          height={videocanvas_h}
-        />
-      </div>
-    {/if}
-
-    {#if ui.current == "processing"}
-      <div class="bg-white text-black p-2">
-        <div class="flex">
-          <span class="p-2">Input Image:</span>
-          <Toggle text="Gray Scale" bind:checked={config.gray_scale_input} />
-        </div>
-        <div class="flex">
-          <span class="p-2">Nearest Pixel Calculation:</span>
-          <Toggle
-            text="Use Gray Value"
-            bind:checked={config.gray_scale_nearest_pixel}
-          />
-        </div>
-
-        <div class="flex">
-          <span class="p-2">Dithering:</span>
-          <Toggle
-            text="None"
-            type="radio"
-            checked={config.dithering == ""}
-            on:click={() => (config.dithering = "")}
-          />
-          <Toggle
-            text="Floyd Steinberg"
-            type="radio"
-            on:click={() => (config.dithering = "fs")}
-            checked={config.dithering == "fs"}
-          />
-          <Toggle
-            text="Patterned"
-            type="radio"
-            checked={config.dithering == "pattern"}
-            on:click={() => (config.dithering = "pattern")}
-          />
-          {#if config.dithering == "pattern"}
-            <span class="h-10 p-2"> Matrix Size: </span>
-            {#each matrices as m}
-              <button
-                class:bg-gray-200={config.matrix == m}
-                class="h-10 p-2 rounded-lg border-solid border-2"
-                on:click={() => {
-                  config.matrix = m;
-                }}
-              >
-                {m.length}
-              </button>
-            {/each}
-          {/if}
-        </div>
-      </div>
-    {/if}
-
-    {#if ui.current == "pallette"}
-      <div class="bg-white text-black p-2">
-        <div class="flex">
-          {#each pallettes as pallette}
-            <PalletteButton
-              selected={config.pallette}
-              on:click={(e, t) => {
-                setPallette(pallette.colors);
-              }}
-              name={pallette.name}
-              color={pallette.colors}
-            />
-          {/each}
-        </div>
-      </div>
-      <div class="flex">
-        {#each config.individual_pallette_colors as c}
-          <Toggle
-            bind:checked={c.on}
-            text={c.color}
-            toggleClass={"bg-gray-200"}
-          >
-            <div style={`background-color: ${c.color}; height: 2em;`}></div>
-          </Toggle>
-        {/each}
-      </div>
-    {/if}
-
-    {#if ui.show_debug}
-      <code>{debug}</code>
-      {#if false}
-        <input
-          type="range"
-          bind:value={config.debug_range}
-          min="-1"
-          max={ui.total_pixels}
-          step="1"
-        />
-      {/if}
-      {#if config.dithering == "pattern"}
-        Matrix Vectors
-        <div class={`grid grid-cols-${config.matrix[0].length} w-fit`}>
-          {#each config.matrix as row}
-            {#each row as cell}
-              <div class="p-2">
-                <input
-                  type="range"
-                  bind:value={cell}
-                  step="0.01"
-                  max="1.0"
-                  min="0.0"
-                />
-                {cell}
+        {#if ui.current == "rubiks"}
+          <div class="text-black p-2">
+            <h2>Output Options</h2>
+            <div class="flex flex-col">
+              <div class="flex">
+                {#if false}
+                  <Toggle bind:checked={config.show_rubiks} text="rubiks" />
+                {/if}
+                <Toggle text="Show Grid" bind:checked={config.show_grid} />
               </div>
-            {/each}
-          {/each}
-        </div>
-      {/if}
-      {#if config.dithering == "fs" && false}
-        <Toggle text="Cap" bind:checked={config.cap} />
-      {/if}
-    {/if}
+              <div class="flex slider-wrapper">
+                <span class="p-2">Width</span>
+                <input
+                  style="width: 200px;"
+                  type="range"
+                  bind:value={config.width}
+                  min="3"
+                  max={config.max_width}
+                  step="3"
+                />
+              </div>
 
-    <div class="bg-gray-200 grow justify-center">
-      <div
-        ondragover="return false"
-        on:drop={handleDrop}
-        on:dragenter={handleDragEnter}
-        on:dragleave={handleDragLeave}
-        id="drop_zone"
-        class="bg-white h-full"
-      >
-        {#if !image_loaded}
-          <div
-            style="width: 100%; height: 100%; border: 1px solid black; background: #ccc; text-align: center;"
-          >
-            Drop Image Here
+              <span>
+                Resolution: {ui.resizedwidth} x {ui.resizedheight} = {ui.resizedwidth *
+                  ui.resizedheight}
+                <br>
+                 Cubes Needed: {(ui.resizedheight * ui.resizedwidth) / 9}
+              </span>
+
+              <div class="flex" style="display: none">
+                Scale
+                <input type="range" bind:value={config.rubiks_scale} max="40" />
+                <span>{config.rubiks_scale}</span>
+
+                <span style="margin-left: 10px">&nbsp;</span>
+                Grid Size
+                <input type="range" bind:value={config.grid_size} max="10" />
+                <span>{config.grid_size}</span>
+              </div>
+            </div>
           </div>
         {/if}
-        <div class="flex">
-          <div class="flex-col">
-            <canvas
-              class="small"
-              class:shown={image_loaded}
-              class:pixelated={config.pixelated}
-              id="canvas"
-              width={ui.canvaswidth}
-              height={ui.canvasheight}
-              bind:this={canvas}
-            />
-            <canvas
-              class:small={config.show_rubiks}
-              class:shown={image_loaded}
-              class:pixelated={config.pixelated}
-              id="output_canvas"
-              width={ui.resizedwidth}
-              height={ui.resizedheight}
-              bind:this={output_canvas}
-              style="border: 4px solid red;"
-            />
-            <div style="position: relative" id="canvas_wrapper">
-              <canvas
-                style="position: absolute;"
-                class:shown={config.has_mockup}
-                id="bgcanvas"
-                width={ui.mockupwidth}
-                height={ui.mockupheight}
-                bind:this={bgcanvas}
-                bind:clientHeight={bgcanvas_clientHeight}
-                bind:clientWidth={bgcanvas_clientWidth}
-              />
 
-              <!--
+        {#if ui.current == "mockup"}
+          <div class="text-black p-2">
+            <div
+              style="height: auto"
+              ondragover="return false"
+              on:drop={handleMockupDrop}
+              on:dragenter={handleMockupDragEnter}
+              on:dragleave={handleMockupDragLeave}
+              id="mockup_drop_zone"
+              class="bg-red-500 h-full p-4"
+            >
+              {#if !ui.mockup_hovering}
+                Drop MockUp Image here
+              {:else}
+                Release to load file
+              {/if}
+
+              {#if config.has_mockup}
+                <button
+                  on:click={removeImageFromBackgroundCanvas}
+                  class="p-2 border-[1px] border-black">Remove mockup</button
+                >
+              {/if}
+
+              <canvas bind:this={mockupImage} style="width: auto" />
+            </div>
+
+            Mock Up Pixel
+            <input
+              type="range"
+              bind:value={config.mockup_pixel_size}
+              min="1"
+              max="25"
+            />
+            <span>{config.mockup_pixel_size}</span>
+
+            <br />
+            Mock Up Position
+            <input
+              type="range"
+              bind:value={config.mockup_x}
+              min="-500"
+              max="500"
+            />
+            <span>{config.mockup_x}</span>
+
+            <input
+              type="range"
+              bind:value={config.mockup_y}
+              min="-500"
+              max="500"
+            />
+            <span>{config.mockup_y}</span>
+          </div>
+        {/if}
+
+        {#if ui.current == "processing"}
+          <div class="text-black p-2">
+            <h2>Processing Options</h2>
+            <div class="flex">
+              <Toggle
+                text="Make Input Image Gray First"
+                bind:checked={config.gray_scale_input}
+              />
+            </div>
+            <div class="flex">
+              <Toggle
+                text="Use Gray Value To Calculate Nearest Pixel"
+                bind:checked={config.gray_scale_nearest_pixel}
+              />
+            </div>
+
+            <div class="flex">
+              <span class="p-2">Dithering:</span>
+              <Toggle
+                text="None"
+                type="radio"
+                checked={config.dithering == ""}
+                on:click={() => (config.dithering = "")}
+              />
+              <Toggle
+                text="Floyd Steinberg"
+                type="radio"
+                on:click={() => (config.dithering = "fs")}
+                checked={config.dithering == "fs"}
+              />
+              <Toggle
+                text="Patterned"
+                type="radio"
+                checked={config.dithering == "pattern"}
+                on:click={() => (config.dithering = "pattern")}
+              />
+            </div>
+            {#if config.dithering == "pattern"}
+              <div>
+                <span class="h-10 p-2">Pattern Matrix Size: </span>
+                {#each matrices as m}
+                  <button
+                    class:bg-gray-200={config.matrix == m}
+                    class="h-10 p-2 rounded-lg border-solid border-2"
+                    on:click={() => {
+                      config.matrix = m;
+                    }}
+                  >
+                    {m.length}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        {#if ui.current == "pallette"}
+          <div class="text-black p-2">
+            <h2>Pallettes</h2>
+            <div class="flex">
+              {#each pallettes as pallette}
+                <PalletteButton
+                  selected={config.pallette}
+                  on:click={(e, t) => {
+                    setPallette(pallette.colors);
+                  }}
+                  name={pallette.name}
+                  color={pallette.colors}
+                />
+              {/each}
+            </div>
+          </div>
+          <div class="flex px-2">
+            {#each config.individual_pallette_colors as c}
+              <div style={``}>
+                <Toggle
+                  bind:checked={c.on}
+                  text={""}
+                  toggleClass={""}
+                  bgcolor={c.color}
+                />
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        {#if ui.show_debug}
+          <code>{debug}</code>
+          {#if false}
+            <input
+              type="range"
+              bind:value={config.debug_range}
+              min="-1"
+              max={ui.total_pixels}
+              step="1"
+            />
+          {/if}
+          {#if config.dithering == "pattern"}
+            Matrix Vectors
+            <div class={`grid grid-cols-${config.matrix[0].length} w-fit`}>
+              {#each config.matrix as row}
+                {#each row as cell}
+                  <div class="p-2">
+                    <input
+                      type="range"
+                      bind:value={cell}
+                      step="0.01"
+                      max="1.0"
+                      min="0.0"
+                    />
+                    {cell}
+                  </div>
+                {/each}
+              {/each}
+            </div>
+          {/if}
+          {#if config.dithering == "fs" && false}
+            <Toggle text="Cap" bind:checked={config.cap} />
+          {/if}
+        {/if}
+      </div>
+
+      <div
+        on:click={() => {
+          ui.current = "";
+        }}
+        class="h-full grow justify-center"
+        style=""
+      >
+        <div
+          ondragover="return false"
+          on:drop={handleDrop}
+          on:dragenter={handleDragEnter}
+          on:dragleave={handleDragLeave}
+          id="drop_zone"
+          class="h-full"
+        >
+          {#if !image_loaded}
+            <div
+              class="h-full w-full flex justify-center items-center bg-gray-300"
+            >
+              Drop Image Here to Load
+            </div>
+          {/if}
+          <div class="flex">
+            <div class="flex-col">
+              <canvas
+                style="display: none"
+                class="small"
+                class:shown={image_loaded}
+                class:pixelated={config.pixelated}
+                id="canvas"
+                width={ui.canvaswidth}
+                height={ui.canvasheight}
+                bind:this={canvas}
+              />
+              <canvas
+                class:small={config.show_rubiks}
+                class:shown={image_loaded}
+                class:pixelated={config.pixelated}
+                id="output_canvas"
+                width={ui.resizedwidth}
+                height={ui.resizedheight}
+                bind:this={output_canvas}
+                style="border: 4px solid red;"
+              />
+              <div style="position: relative" id="canvas_wrapper">
+                <canvas
+                  style="position: absolute;"
+                  class:shown={config.has_mockup}
+                  id="bgcanvas"
+                  width={ui.mockupwidth}
+                  height={ui.mockupheight}
+                  bind:this={bgcanvas}
+                  bind:clientHeight={bgcanvas_clientHeight}
+                  bind:clientWidth={bgcanvas_clientWidth}
+                />
+
+                <!--
                 top = (pos y / 100) x (canvas height) - (half of canvas height)
                 left = (pos x / 100) x (canvas width) - (half of canvas width)
               -->
-              {#if config.has_mockup}
-                <canvas
-                  style="position: absolute;
+                {#if config.has_mockup}
+                  <canvas
+                    style="position: absolute;
                 top: {bgcanvas_clientHeight / 2 -
-                    (ui.resizedheight *
-                      config.mockup_pixel_size *
-                      bgcanvas_clientWidth) /
-                      ui.mockupwidth /
-                      2 +
-                    (config.mockup_y * bgcanvas_clientWidth) /
-                      ui.mockupwidth}px;
+                      (ui.resizedheight *
+                        config.mockup_pixel_size *
+                        bgcanvas_clientWidth) /
+                        ui.mockupwidth /
+                        2 +
+                      (config.mockup_y * bgcanvas_clientWidth) /
+                        ui.mockupwidth}px;
                 left: {bgcanvas_clientWidth / 2 -
-                    (ui.resizedwidth *
+                      (ui.resizedwidth *
+                        config.mockup_pixel_size *
+                        bgcanvas_clientWidth) /
+                        ui.mockupwidth /
+                        2 +
+                      (config.mockup_x * bgcanvas_clientWidth) /
+                        ui.mockupwidth}px;
+                width: {(ui.resizedwidth *
                       config.mockup_pixel_size *
                       bgcanvas_clientWidth) /
-                      ui.mockupwidth /
-                      2 +
-                    (config.mockup_x * bgcanvas_clientWidth) /
-                      ui.mockupwidth}px;
-                width: {(ui.resizedwidth *
-                    config.mockup_pixel_size *
-                    bgcanvas_clientWidth) /
-                    ui.mockupwidth}px"
-                  class:shown={image_loaded && config.show_rubiks}
-                  class:pixelated={config.pixelated}
-                  id="rubiks_canvas"
-                  width={ui.resizedwidth * config.rubiks_scale}
-                  height={ui.resizedheight * config.rubiks_scale}
-                  bind:this={rubiks_canvas}
-                />
-              {:else}
-                <canvas
-                  class:shown={image_loaded && config.show_rubiks}
-                  class:pixelated={config.pixelated}
-                  id="rubiks_canvas"
-                  width={ui.resizedwidth * config.rubiks_scale}
-                  height={ui.resizedheight * config.rubiks_scale}
-                  bind:this={rubiks_canvas}
-                />
-              {/if}
+                      ui.mockupwidth}px"
+                    class:shown={image_loaded && config.show_rubiks}
+                    class:pixelated={config.pixelated}
+                    id="rubiks_canvas"
+                    width={ui.resizedwidth * config.rubiks_scale}
+                    height={ui.resizedheight * config.rubiks_scale}
+                    bind:this={rubiks_canvas}
+                  />
+                {:else}
+                  <canvas
+                    class:shown={image_loaded && config.show_rubiks}
+                    class:pixelated={config.pixelated}
+                    id="rubiks_canvas"
+                    width={ui.resizedwidth * config.rubiks_scale}
+                    height={ui.resizedheight * config.rubiks_scale}
+                    bind:this={rubiks_canvas}
+                  />
+                {/if}
+              </div>
             </div>
           </div>
-        </div>
 
-        {#if !image_loaded && ui.hovering}
-          <div
-            class="rounded-lg border-solid border-2 p-8 text-white text-center m-auto w-fit"
-          >
-            Drop to load image
-          </div>
-        {/if}
+          {#if !image_loaded && ui.hovering}
+            <div
+              class="rounded-lg border-solid border-2 p-8 text-white text-center m-auto w-fit"
+            >
+              Drop to load image
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
 
     {#if ui.resizedheight && ui.resizedwidth}
-      Image Size: {ui.resizedwidth} x {ui.resizedheight} = {ui.resizedwidth *
-        ui.resizedheight}
-      | Total Cubes Needed: {(ui.resizedheight * ui.resizedwidth) / 9}
-
       <!--
       WIDTH: {bgcanvas_clientWidth}
       HEIGHT: {bgcanvas_clientHeight}
@@ -1105,6 +1158,11 @@
 <style>
   .spacer {
     flex-grow: 1;
+  }
+
+  h2 {
+    margin-bottom: 6px;
+    font-size: 1.4em;
   }
   pre {
     overflow: hidden;

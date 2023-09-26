@@ -3,6 +3,7 @@
     export let text = "O";
     export let toggleClass = "bg-gray-200"
     export let type = "checkbox";
+    export let bgcolor = "";
 
     let toggle = () => {
         checked = !checked;
@@ -15,8 +16,8 @@
         : ''} rounded-lg border-solid border-[1px] text-center"
     on:click={toggle}
     on:click
+    style={bgcolor ? `background-color: ${bgcolor}` : ""}
 >
-
 
     <slot />
 
@@ -33,7 +34,5 @@
     div {
         cursor: pointer;
         user-select: none;
-        transition-property: "background-color";
-        transition-duration: 200ms;
     }
 </style>
