@@ -137,7 +137,7 @@ function hashCode(str) {
 
 const calc_i = (x, y, width) => (y * width + x) * 4;
 
-let setPixelDataRGB = function (image_data, x, y, pixel) {
+let setPixelDataRGB = function(image_data, x, y, pixel) {
     let width = image_data.width;
     let i = calc_i(x, y, width);
 
@@ -146,12 +146,12 @@ let setPixelDataRGB = function (image_data, x, y, pixel) {
     image_data.data[i + 2] = pixel.b;
 };
 
-let setPixelDataRaw = function (image_data, i, value) {
+let setPixelDataRaw = function(image_data, i, value) {
     image_data.data[i] = value;
 };
 
 
-let getPixelDataRGB = function (image_data, x, y) {
+let getPixelDataRGB = function(image_data, x, y) {
     let width = image_data.width;
     let i = calc_i(x, y, width);
 
@@ -162,8 +162,77 @@ let getPixelDataRGB = function (image_data, x, y) {
     };
 };
 
+const cloneSubset = (src, des, x, y, w, h) => {
+    let pctx = des.getContext('2d')
+
+    let ctx = src.getContext('2d')
+
+    let image_data = ctx.getImageData(
+        0,
+        0,
+        w,
+        h
+    );
+
+    pctx.putImageData(image_data, 0, 0)
+}
+
+function scaleImageData(c, imageData, scale) {
+  var scaled = c.createImageData(imageData.width * scale, imageData.height * scale);
+
+  for(var row = 0; row < imageData.height; row++) {
+    for(var col = 0; col < imageData.width; col++) {
+      var sourcePixel = [
+        imageData.data[(row * imageData.width + col) * 4 + 0],
+        imageData.data[(row * imageData.width + col) * 4 + 1],
+        imageData.data[(row * imageData.width + col) * 4 + 2],
+        imageData.data[(row * imageData.width + col) * 4 + 3]
+      ];
+      for(var y = 0; y < scale; y++) {
+        var destRow = row * scale + y;
+        for(var x = 0; x < scale; x++) {
+          var destCol = col * scale + x;
+          for(var i = 0; i < 4; i++) {
+            scaled.data[(destRow * scaled.width + destCol) * 4 + i] =
+              sourcePixel[i];
+          }
+        }
+      }
+    }
+  }
+
+  return scaled;
+}
+const drawGrid = (rctx, grid_size, rubiks_scale, width, height, color="#000000") => {
+
+    rctx.lineWidth = grid_size;
+    rctx.strokeStyle = color;
+
+    for (let y = 0; y < height; y++) {
+        rctx.beginPath();
+        rctx.moveTo(0, y * rubiks_scale);
+        rctx.lineTo(
+            width * rubiks_scale,
+            y * rubiks_scale
+        );
+        rctx.stroke();
+    }
+
+    for (let x = 0; x < width; x++) {
+        rctx.beginPath();
+        rctx.moveTo(x * rubiks_scale, 0);
+        rctx.lineTo(
+            x * rubiks_scale,
+            height * rubiks_scale
+        );
+        rctx.stroke();
+    }
+}
+
+
 
 const img_proc = {
+    cloneSubset,
     getPixelDataRGB,
     setPixelDataRGB,
     setPixelDataRaw,
@@ -178,7 +247,10 @@ const img_proc = {
     pixelAdd,
     pixelDiff,
     hexToRgb,
+    RgbToHex,
     calculatePixelDifference,
+    drawGrid,
+    scaleImageData
 }
 
 export {

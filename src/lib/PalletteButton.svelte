@@ -9,7 +9,7 @@
 <button
     on:click
     class="p-2 rounded-lg border-solid border-2 text-center"
-    class:bg-gray-200={selected == color}
+    class:bg-gray-400={selected}
 >
     <div class="flex border-[1px] border-black w-12">
         {#each colors as c}

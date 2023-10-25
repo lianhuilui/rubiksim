@@ -4,6 +4,35 @@
   import PalletteButton from "./lib/PalletteButton.svelte";
   import { tick } from "svelte";
   import { img_processing as m } from "./img_processing.js";
+  import { onMount } from "svelte";
+
+  let range = { x: 6, y: 1 };
+
+  onMount(() => {
+    window.addEventListener("keydown", (e) => {
+      console.log(config.enable_arrows);
+      if (config.enable_arrows) {
+        switch (e.key) {
+          case "ArrowUp":
+            e.preventDefault();
+            ui.select_pos.y -= 1;
+            break;
+          case "ArrowDown":
+            e.preventDefault();
+            ui.select_pos.y += 1;
+            break;
+          case "ArrowLeft":
+            ui.select_pos.x -= 1;
+            e.preventDefault();
+            break;
+          case "ArrowRight":
+            ui.select_pos.x += 1;
+            e.preventDefault();
+            break;
+        }
+      }
+    });
+  });
 
   let image_loaded = false;
 
@@ -43,6 +72,8 @@
   // TODO: separate the configs which affect the final output
   // from the ones that dont
   let config = {
+    enable_arrows: true,
+    show_zoomed: false,
     loadedfile: "",
     cache: true,
     cap: false,
@@ -61,7 +92,7 @@
     gray_scale_input: false,
     gray_scale_nearest_pixel: false,
     grid_size: 2,
-    pallette: pallettes[0].colors,
+    pallette: pallettes[0],
     individual_pallette_colors: [],
     debug_range: -1,
     matrix: matrices[0],
@@ -93,6 +124,7 @@
 
   let ui = {
     current: "",
+    select_pos: { x: 0, y: 0 },
     hovering: false,
     mockup_hovering: false,
     mockupheight: 100,
@@ -113,6 +145,7 @@
   let canvas;
   let bgcanvas;
   let output_canvas;
+  let preview_canvas;
   let videocanvas;
   let videocanvas_w;
   let videocanvas_h;
@@ -150,8 +183,7 @@
 
       setTimeout(() => {
         capture();
-      }, 250) // wait a while a capture the first image
-
+      }, 250); // wait a while a capture the first image
     } catch (err) {
       console.error(`Error: ${err}`);
     }
@@ -227,17 +259,17 @@
   };
 
   let handleOpenFile = function () {
-    var input = document.createElement('input');
-    input.type = 'file';
+    var input = document.createElement("input");
+    input.type = "file";
 
-    input.onchange = e => { 
-      var file = e.target.files[0]; 
+    input.onchange = (e) => {
+      var file = e.target.files[0];
 
-      loadImageOnCanvas(file)
-    }
+      loadImageOnCanvas(file);
+    };
 
     input.click();
-  }
+  };
 
   let handleDragEnter = function () {
     console.log("drag enter");
@@ -328,11 +360,16 @@
   };
 
   let loadImageOnCanvas = function (file) {
-
     showVideoCanvas = false;
 
     // empty cache
     config.loadedfile = file.name;
+
+    if (config.loadedfile?.toLowerCase().endsWith(".png")) {
+      alert(
+        "Transparent PNGs have known issues.. Please use non-transparent PNGs"
+      );
+    }
 
     let ctx = canvas.getContext("2d");
     originalImage = new Image();
@@ -391,12 +428,12 @@
     originalImage.src = fromcanvas.toDataURL("image/png");
   };
 
-  let setPallette = function (color) {
-    config.pallette = color;
+  let setPallette = function (pallette) {
+    config.pallette = pallette;
 
     config.individual_pallette_colors = [];
 
-    color.split(",").forEach((value) => {
+    pallette.colors.split(",").forEach((value) => {
       config.individual_pallette_colors.push({ color: value, on: true });
     });
   };
@@ -484,7 +521,7 @@
       }
 
       // only get the pallette colors that are "ON"
-      let pallette = config.pallette;
+      let pallette = config.pallette.colors;
 
       if (config.individual_pallette_colors.length) {
         pallette = config.individual_pallette_colors
@@ -671,6 +708,51 @@
       }
     }
 
+    // TODO: if ui.current.enable_arrows
+    let ctx = output_canvas.getContext("2d");
+
+    let image_data = ctx.getImageData(0, 0, ui.resizedwidth, ui.resizedheight);
+
+    if (config.enable_arrows) {
+      /*
+      m.cloneSubset(
+        output_canvas,
+        preview_canvas,
+        ui.select_pos.y,
+        ui.select_pos.y,
+        range.x ? range.x : 6,
+        range.y ? range.y : 6
+      );
+      */
+
+      let pctx = preview_canvas.getContext("2d");
+
+      pctx.fillStyle = "black";
+      pctx.fillRect(0, 0, preview_canvas.width, preview_canvas.height);
+
+      let cutout = ctx.getImageData(
+        ui.select_pos.x * 3,
+        ui.select_pos.y * 3,
+        range.x * 3,
+        range.y * 3
+      );
+
+      let { grid_size, rubiks_scale } = config;
+
+      let scaled_cutout = m.scaleImageData(ctx, cutout, rubiks_scale);
+
+      pctx.imageSmoothingEnabled = false;
+      pctx.putImageData(scaled_cutout, 0, 0);
+      // m.drawGrid(ctx, 3, 3, 1, 10, 10)
+
+      m.drawGrid(pctx, grid_size / 2, rubiks_scale, range.x * 3, range.y * 3); // 9, 9);
+
+      m.drawGrid(pctx, grid_size, rubiks_scale * 3, range.x * 3, range.y * 3); // 9 /3, 9/3);
+      // m.drawGrid(pctx, grid_size, rubiks_scale, 9, 9);
+    }
+
+    // TODO: draw the pixels selected pixels (based on ui.select_pos) on second canvas
+
     if (config.show_rubiks) {
       let rctx = rubiks_canvas.getContext("2d");
       let ctx = output_canvas.getContext("2d");
@@ -691,28 +773,10 @@
       );
 
       if (config.show_grid && config.grid_size > 0) {
-        rctx.lineWidth = config.grid_size;
-        rctx.strokeStyle = "#000000";
+        let { grid_size, rubiks_scale } = config;
+        let { width, height } = image_data;
 
-        for (let y = 0; y < image_data.height; y++) {
-          rctx.beginPath();
-          rctx.moveTo(0, y * config.rubiks_scale);
-          rctx.lineTo(
-            image_data.width * config.rubiks_scale,
-            y * config.rubiks_scale
-          );
-          rctx.stroke();
-        }
-
-        for (let x = 0; x < image_data.width; x++) {
-          rctx.beginPath();
-          rctx.moveTo(x * config.rubiks_scale, 0);
-          rctx.lineTo(
-            x * config.rubiks_scale,
-            image_data.height * config.rubiks_scale
-          );
-          rctx.stroke();
-        }
+        m.drawGrid(rctx, grid_size, rubiks_scale, width, height);
       }
     }
   });
@@ -737,7 +801,7 @@
             handleOpenFile();
           }}
         >
-          <i class="fa fa-folder-open" />
+          <i class="fa-fw fa fa-folder-open" />
         </button>
         <button
           class:bg-gray-400={ui.current == "pallette"}
@@ -746,7 +810,7 @@
             toggleUI("pallette");
           }}
         >
-          <i class="fa fa-paintbrush" />
+          <i class="fa-fw fa fa-paintbrush" />
         </button>
         <button
           class:bg-gray-400={ui.current == "processing"}
@@ -755,7 +819,7 @@
             toggleUI("processing");
           }}
         >
-          <i class="fa fa-cog" />
+          <i class="fa-fw fa fa-cog" />
         </button>
         <button
           class:bg-gray-400={ui.current == "rubiks"}
@@ -764,7 +828,7 @@
             toggleUI("rubiks");
           }}
         >
-          <i class="fa fa-table" />
+          <i class="fa-fw fa fa-table" />
         </button>
         <button
           class:bg-gray-400={ui.current == "mockup"}
@@ -782,7 +846,7 @@
             startCapture();
           }}
         >
-          <i class="fa fa-tv" />
+          <i class="fa-fw fa fa-tv" />
         </button>
         <button
           class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
@@ -790,6 +854,16 @@
             capture();
           }}>Capture</button
         >
+
+        <button
+          class:bg-gray-400={ui.current == "arrows"}
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            toggleUI("arrows");
+          }}
+        >
+          <i class="fa-fw fa fa-play" />
+        </button>
 
         {#if showVideoCanvas}
           <video
@@ -864,8 +938,8 @@
               <span>
                 Resolution: {ui.resizedwidth} x {ui.resizedheight} = {ui.resizedwidth *
                   ui.resizedheight}
-                <br>
-                 Cubes Needed: {(ui.resizedheight * ui.resizedwidth) / 9}
+                <br />
+                Cubes Needed: {(ui.resizedheight * ui.resizedwidth) / 9}
               </span>
 
               <div class="flex" style="display: none">
@@ -996,13 +1070,13 @@
 
         {#if ui.current == "pallette"}
           <div class="text-black p-2">
-            <h2>Pallettes</h2>
+            <h2>Pallette - {config.pallette.name}</h2>
             <div class="flex">
               {#each pallettes as pallette}
                 <PalletteButton
-                  selected={config.pallette}
+                  selected={config.pallette == pallette}
                   on:click={(e, t) => {
-                    setPallette(pallette.colors);
+                    setPallette(pallette);
                   }}
                   name={pallette.name}
                   color={pallette.colors}
@@ -1058,6 +1132,46 @@
             <Toggle text="Cap" bind:checked={config.cap} />
           {/if}
         {/if}
+
+        {#if ui.current == "arrows"}
+          <div class="p-2">
+            <h2>Output</h2>
+
+            <div class="flex flex-col gap-2">
+              <div class="flex flex-col">
+                <div>
+                  <input type="range" bind:value={range.x} min="1" max="100"/>
+                  {range.x}
+                </div>
+                <div>
+                  <input type="range" bind:value={range.y} min="1" max="100"/>
+                  {range.y}
+                </div>
+              </div>
+              <span>
+                Select: ({ui.select_pos.x}, {ui.select_pos.y})
+              </span>
+              <span>
+                <input
+                  type="checkbox"
+                  name=""
+                  id="enable_arrows"
+                  bind:checked={config.enable_arrows}
+                />
+                <label for="enable_arrows">Enable arrow controls</label>
+              </span>
+              <span>
+                <input
+                  type="checkbox"
+                  name=""
+                  id="show_zoomed"
+                  bind:checked={config.show_zoomed}
+                />
+                <label for="show_zoomed">Show Zoomed Rubiks</label>
+              </span>
+            </div>
+          </div>
+        {/if}
       </div>
 
       <div
@@ -1082,6 +1196,7 @@
               Drop Image Here to Load
             </div>
           {/if}
+
           <div class="flex">
             <div class="flex-col">
               <canvas
@@ -1104,6 +1219,33 @@
                 bind:this={output_canvas}
                 style="border: 4px solid red;"
               />
+              <table class="table">
+                <tr>
+                  <td />
+                  <td>
+                    <div class="min-w-[20px]">
+                      {ui.select_pos.x + 1}
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="align-top">
+                    <div class="min-w-[20px] text-center">
+                      {ui.select_pos.y + 1}
+                    </div>
+                  </td>
+                  <td>
+                    <canvas
+                      class={!config.show_zoomed ? '!w-fit' : '' }
+                      style="image-rendering: pixelated;"
+                      id="preview"
+                      bind:this={preview_canvas}
+                      width={range.x * 3 * Number(config.rubiks_scale)}
+                      height={range.y * 3 * Number(config.rubiks_scale)}
+                    />
+                  </td>
+                </tr>
+              </table>
               <div style="position: relative" id="canvas_wrapper">
                 <canvas
                   style="position: absolute;"
