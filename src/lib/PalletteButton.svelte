@@ -1,9 +1,6 @@
 <script>
-    export let color = "";
     export let selected = "";
-    export let name = "default";
-
-    let colors = color.split(",");
+    export let colors;
 </script>
 
 <button
@@ -13,7 +10,7 @@
 >
     <div class="flex border-[1px] border-black w-12">
         {#each colors as c}
-            <div style="background-color: {c};" class="grow h-4">
+            <div style="background-color: {c.color};" class="grow h-4">
             </div>
         {/each}
     </div>

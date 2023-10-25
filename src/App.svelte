@@ -6,12 +6,9 @@
   import { img_processing as m } from "./img_processing.js";
   import { onMount } from "svelte";
 
-  let range = { x: 6, y: 1 };
-
   onMount(() => {
     window.addEventListener("keydown", (e) => {
-      console.log(config.enable_arrows);
-      if (config.enable_arrows) {
+      if (ui.enable_arrows && ui.show_steps) {
         switch (e.key) {
           case "ArrowUp":
             e.preventDefault();
@@ -32,6 +29,8 @@
         }
       }
     });
+
+    setPallette(pallettes[0]);
   });
 
   let image_loaded = false;
@@ -39,21 +38,81 @@
   let pallettes = [
     {
       name: "Rubik's Colors",
-      colors: "#013082,#BB2328,#01B351,#FE8F25,#F5FF42,#ECF3F6",
+      colors: [
+        { color: "#013082", on: true },
+        { color: "#BB2328", on: true },
+        { color: "#01B351", on: true },
+        { color: "#FE8F25", on: true },
+        { color: "#F5FF42", on: true },
+        { color: "#ECF3F6", on: true },
+      ],
     },
     {
       name: "Rubik's Colors W/O Green",
-      colors: "#013082,#BB2328,#FE8F25,#F5FF42,#ECF3F6",
+      colors: [
+        { color: "#013082", on: true },
+        { color: "#BB2328", on: true },
+        { color: "#FE8F25", on: true },
+        { color: "#F5FF42", on: true },
+        { color: "#ECF3F6", on: true },
+      ],
     },
-    { name: "Black & White", colors: "#000,#fff" },
-    { name: "Black, Gray, White", colors: "#000,#666,#fff" },
+    {
+      name: "Black & White",
+      colors: [
+        { color: "#000", on: true },
+        { color: "#fff", on: true },
+      ],
+    },
+    {
+      name: "Black, Gray, White",
+      colors: [
+        { color: "#000", on: true },
+        { color: "#666", on: true },
+        { color: "#fff", on: true },
+      ],
+    },
     {
       name: "Gray Scale",
-      colors:
-        "#000,#111,#222,#333,#444,#555,#666,#777,#888,#999,#aaa,#bbb,#ccc,#ddd,#eee,#fff",
+      colors: [
+        { color: "#000", on: true },
+        { color: "#111", on: true },
+        { color: "#222", on: true },
+        { color: "#333", on: true },
+        { color: "#444", on: true },
+        { color: "#555", on: true },
+        { color: "#666", on: true },
+        { color: "#777", on: true },
+        { color: "#888", on: true },
+        { color: "#999", on: true },
+        { color: "#aaa", on: true },
+        { color: "#bbb", on: true },
+        { color: "#ccc", on: true },
+        { color: "#ddd", on: true },
+        { color: "#eee", on: true },
+        { color: "#fff", on: true },
+      ],
     },
-    { name: "RGB", colors: "#000,#f00,#0f0,#00f,#fff" },
-    { name: "CMYK", colors: "#000,#0ff,#f0f,#ff0,#fff" },
+    {
+      name: "RGB",
+      colors: [
+        { color: "#000", on: true },
+        { color: "#f00", on: true },
+        { color: "#0f0", on: true },
+        { color: "#00f", on: true },
+        { color: "#fff", on: true },
+      ],
+    },
+    {
+      name: "CMYK",
+      colors: [
+        { color: "#000", on: true },
+        { color: "#0ff", on: true },
+        { color: "#f0f", on: true },
+        { color: "#ff0", on: true },
+        { color: "#fff", on: true },
+      ],
+    },
   ];
 
   let matrices = [
@@ -72,14 +131,19 @@
   // TODO: separate the configs which affect the final output
   // from the ones that dont
   let config = {
-    enable_arrows: true,
-    show_zoomed: false,
+    zoom_range: { x: 6, y: 1 },
+    screenCapturePadding: {
+      top: 0,
+      left: 0,
+      bottom: 0,
+      right: 0,
+    },
     loadedfile: "",
     cache: true,
     cap: false,
     pixelated: false,
     has_mockup: false,
-    mockup_pixel_size: 1,
+    mockup_pixel_size: 5,
     mockup_x: 0,
     mockup_y: 0,
     width: 99,
@@ -93,12 +157,12 @@
     gray_scale_nearest_pixel: false,
     grid_size: 2,
     pallette: pallettes[0],
-    individual_pallette_colors: [],
     debug_range: -1,
     matrix: matrices[0],
     live_capture: false,
   };
 
+  /* used for hashing the output image. therefore you need to put all settings that affect the output image here */
   $: params = {
     loadedfile: config.loadedfile,
     width: config.width,
@@ -107,28 +171,26 @@
     gray_scale_input: config.gray_scale_input,
     gray_scale_nearest_pixel: config.gray_scale_nearest_pixel,
     pallette: config.pallette,
-    individual_pallette_colors: config.individual_pallette_colors,
     matrix: config.matrix,
   };
 
-  $: debug = (
-    "UI = " +
-    JSON.stringify(ui) +
-    "\nparams: " +
-    JSON.stringify(params) +
-    "\nCONFIG:" +
-    JSON.stringify(config) +
-    "CLIENT WIDTH:" +
-    bgcanvas_clientWidth
-  ).replaceAll(",", ", ");
+  $: debug = JSON.stringify(
+    { ui, params, config, clientWidth: bgcanvas_clientWidth },
+    null,
+    2
+  );
 
   let ui = {
+    allow_edit_colors: false,
+    enable_arrows: true,
     current: "",
     select_pos: { x: 0, y: 0 },
     hovering: false,
     mockup_hovering: false,
     mockupheight: 100,
     mockupwidth: 100,
+    show_zoomed: false,
+    show_steps: false,
     show_debug: false,
     resizedwidth: 0,
     resizedheight: 0,
@@ -219,12 +281,24 @@
       let max_width = 300;
       let max_height = (max_width * video.videoHeight) / video.videoWidth;
 
-      videocanvas_w = max_width;
-      videocanvas_h = max_height;
+      const shouldPad = true;
+      let { top, bottom, left, right } = { ...config.screenCapturePadding };
+
+      if (shouldPad) {
+        videocanvas_w = max_width - left - right;
+        videocanvas_h = max_height - top - bottom;
+      } else {
+        videocanvas_w = max_width;
+        videocanvas_h = max_height;
+      }
 
       await tick();
 
-      ctx.drawImage(video, 0, 0, max_width, max_height);
+      if (shouldPad) {
+        ctx.drawImage(video, -left, -top, max_width, max_height);
+      } else {
+        ctx.drawImage(video, 0, 0, max_width, max_height);
+      }
 
       console.log("loading image on video");
       loadImageOnCanvas2(videocanvas);
@@ -378,8 +452,8 @@
       ui.canvasheight = originalImage.height;
       ui.canvaswidth = originalImage.width;
 
-      config.width = Math.min(99, ui.canvaswidth);
-      config.max_width = Math.min(ui.canvaswidth, 999);
+      // config.width = Math.min(99, ui.canvaswidth);
+      // config.max_width = Math.min(ui.canvaswidth, 999);
 
       image_loaded = true;
 
@@ -430,12 +504,6 @@
 
   let setPallette = function (pallette) {
     config.pallette = pallette;
-
-    config.individual_pallette_colors = [];
-
-    pallette.colors.split(",").forEach((value) => {
-      config.individual_pallette_colors.push({ color: value, on: true });
-    });
   };
 
   let toggleUI = function (str) {
@@ -523,16 +591,21 @@
       // only get the pallette colors that are "ON"
       let pallette = config.pallette.colors;
 
-      if (config.individual_pallette_colors.length) {
-        pallette = config.individual_pallette_colors
+      // if (config.individual_pallette_colors.length) {
+      //   pallette = config.individual_pallette_colors
+      //     .filter((color) => color.on)
+      //     .map((color) => color.color);
+      // }
+
+      if (config.pallette.colors.length) {
+        pallette = config.pallette.colors
           .filter((color) => color.on)
-          .map((color) => color.color)
-          .join(",");
+          .map((color) => color.color);
       }
 
-      let N = pallette.split(",").length;
+      let N = pallette.length;
 
-      let color_array = pallette.split(",");
+      let color_array = pallette;
 
       color_array.forEach((color, i) => {
         color_array[i] = m.hexToRgb(color);
@@ -713,7 +786,7 @@
 
     let image_data = ctx.getImageData(0, 0, ui.resizedwidth, ui.resizedheight);
 
-    if (config.enable_arrows) {
+    if (ui.enable_arrows) {
       /*
       m.cloneSubset(
         output_canvas,
@@ -733,8 +806,8 @@
       let cutout = ctx.getImageData(
         ui.select_pos.x * 3,
         ui.select_pos.y * 3,
-        range.x * 3,
-        range.y * 3
+        config.zoom_range.x * 3,
+        config.zoom_range.y * 3
       );
 
       let { grid_size, rubiks_scale } = config;
@@ -745,9 +818,21 @@
       pctx.putImageData(scaled_cutout, 0, 0);
       // m.drawGrid(ctx, 3, 3, 1, 10, 10)
 
-      m.drawGrid(pctx, grid_size / 2, rubiks_scale, range.x * 3, range.y * 3); // 9, 9);
+      m.drawGrid(
+        pctx,
+        grid_size / 2,
+        rubiks_scale,
+        config.zoom_range.x * 3,
+        config.zoom_range.y * 3
+      ); // 9, 9);
 
-      m.drawGrid(pctx, grid_size, rubiks_scale * 3, range.x * 3, range.y * 3); // 9 /3, 9/3);
+      m.drawGrid(
+        pctx,
+        grid_size,
+        rubiks_scale * 3,
+        config.zoom_range.x * 3,
+        config.zoom_range.y * 3
+      ); // 9 /3, 9/3);
       // m.drawGrid(pctx, grid_size, rubiks_scale, 9, 9);
     }
 
@@ -800,60 +885,53 @@
           on:click={() => {
             handleOpenFile();
           }}
+          title="Open File"
         >
           <i class="fa-fw fa fa-folder-open" />
         </button>
-        <button
-          class:bg-gray-400={ui.current == "pallette"}
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            toggleUI("pallette");
-          }}
-        >
-          <i class="fa-fw fa fa-paintbrush" />
-        </button>
-        <button
-          class:bg-gray-400={ui.current == "processing"}
-          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            toggleUI("processing");
-          }}
-        >
-          <i class="fa-fw fa fa-cog" />
-        </button>
+
         <button
           class:bg-gray-400={ui.current == "rubiks"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
             toggleUI("rubiks");
           }}
+          title="Dimensions"
         >
-          <i class="fa-fw fa fa-table" />
+          <i class="fa-fw fa fa-expand" />
         </button>
-        <button
-          class:bg-gray-400={ui.current == "mockup"}
-          class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            toggleUI("mockup");
-          }}>Mock&nbsp;Up</button
-        >
 
         <button
-          class:bg-gray-400={showVideoCanvas}
+          class:bg-gray-400={ui.current == "pallette"}
           class="h-10 p-2 rounded-lg border-solid border-2 text-center"
           on:click={() => {
-            ontick = capture;
-            startCapture();
+            toggleUI("pallette");
+          }}
+          title="Colors"
+        >
+          <i class="fa-fw fa fa-palette" />
+        </button>
+
+        <button
+          class:bg-gray-400={ui.current == "processing"}
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            toggleUI("processing");
+          }}
+          title="Image Processing"
+        >
+          <i class="fa-fw fa fa-cog" />
+        </button>
+
+        <button
+          class:bg-gray-400={ui.current == "mockup"}
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            toggleUI("mockup");
           }}
         >
-          <i class="fa-fw fa fa-tv" />
+          <i class="fa fa-image" />
         </button>
-        <button
-          class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
-          on:click={() => {
-            capture();
-          }}>Capture</button
-        >
 
         <button
           class:bg-gray-400={ui.current == "arrows"}
@@ -864,6 +942,25 @@
         >
           <i class="fa-fw fa fa-play" />
         </button>
+
+        <button
+          class:bg-gray-400={showVideoCanvas}
+          class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            ontick = capture;
+            startCapture();
+          }}
+          title="Screen Capture"
+        >
+          <i class="fa-fw fa fa-desktop" />
+        </button>
+
+        <button
+          class="hidden h-10 p-2 rounded-lg border-solid border-2 text-center"
+          on:click={() => {
+            capture();
+          }}>Capture</button
+        >
 
         {#if showVideoCanvas}
           <video
@@ -915,7 +1012,7 @@
 
         {#if ui.current == "rubiks"}
           <div class="text-black p-2">
-            <h2>Output Options</h2>
+            <h2>Dimension</h2>
             <div class="flex flex-col">
               <div class="flex">
                 {#if false}
@@ -965,13 +1062,21 @@
               on:dragenter={handleMockupDragEnter}
               on:dragleave={handleMockupDragLeave}
               id="mockup_drop_zone"
-              class="bg-red-500 h-full p-4"
+              class="bg-green-200 h-full p-4"
             >
+              <h2>Mock Up</h2>
+              <i>
+                This should be an image of the wall where you'll place your
+                rubik's cube art.
+              </i>
+              <br />
               {#if !ui.mockup_hovering}
-                Drop MockUp Image here
+                Drop Background Image here.
               {:else}
                 Release to load file
               {/if}
+
+              <canvas bind:this={mockupImage} style="width: auto" />
 
               {#if config.has_mockup}
                 <button
@@ -979,21 +1084,21 @@
                   class="p-2 border-[1px] border-black">Remove mockup</button
                 >
               {/if}
-
-              <canvas bind:this={mockupImage} style="width: auto" />
             </div>
 
-            Mock Up Pixel
+            Pixel Size
             <input
               type="range"
               bind:value={config.mockup_pixel_size}
+              step="0.1"
               min="1"
               max="25"
             />
             <span>{config.mockup_pixel_size}</span>
 
             <br />
-            Mock Up Position
+            Position
+            <br />
             <input
               type="range"
               bind:value={config.mockup_x}
@@ -1002,6 +1107,7 @@
             />
             <span>{config.mockup_x}</span>
 
+            <br />
             <input
               type="range"
               bind:value={config.mockup_y}
@@ -1071,6 +1177,14 @@
         {#if ui.current == "pallette"}
           <div class="text-black p-2">
             <h2>Pallette - {config.pallette.name}</h2>
+
+            <div class="w-fit">
+              <Toggle
+                bind:checked={ui.allow_edit_colors}
+                text={"Make Colors Editable"}
+              />
+            </div>
+
             <div class="flex">
               {#each pallettes as pallette}
                 <PalletteButton
@@ -1078,14 +1192,13 @@
                   on:click={(e, t) => {
                     setPallette(pallette);
                   }}
-                  name={pallette.name}
-                  color={pallette.colors}
+                  colors={pallette.colors}
                 />
               {/each}
             </div>
           </div>
           <div class="flex px-2">
-            {#each config.individual_pallette_colors as c}
+            {#each config.pallette.colors as c}
               <div style={``}>
                 <Toggle
                   bind:checked={c.on}
@@ -1093,22 +1206,43 @@
                   toggleClass={""}
                   bgcolor={c.color}
                 />
+                <input
+                  type="color"
+                  name=""
+                  id=""
+                  bind:value={c.color}
+                  class:hidden={!ui.allow_edit_colors}
+                />
               </div>
             {/each}
+            <!-- OLD -->
+            <!-- {#each config.individual_pallette_colors as c} -->
+            <!--   <div style={``}> -->
+            <!--     <Toggle -->
+            <!--       bind:checked={c.on} -->
+            <!--       text={""} -->
+            <!--       toggleClass={""} -->
+            <!--       bgcolor={c.color} -->
+            <!--     /> -->
+            <!--   </div> -->
+            <!-- {/each} -->
           </div>
         {/if}
 
         {#if ui.show_debug}
-          <code>{debug}</code>
-          {#if false}
-            <input
-              type="range"
-              bind:value={config.debug_range}
-              min="-1"
-              max={ui.total_pixels}
-              step="1"
-            />
-          {/if}
+          <div class="fixed h-full overflow-scroll bg-white right-0 shadow-lg">
+            <pre>{debug}</pre>
+            {#if false}
+              <input
+                type="range"
+                bind:value={config.debug_range}
+                min="-1"
+                max={ui.total_pixels}
+                step="1"
+              />
+            {/if}
+          </div>
+
           {#if config.dithering == "pattern"}
             Matrix Vectors
             <div class={`grid grid-cols-${config.matrix[0].length} w-fit`}>
@@ -1135,39 +1269,47 @@
 
         {#if ui.current == "arrows"}
           <div class="p-2">
-            <h2>Output</h2>
+            <h2>Ready to Cube?</h2>
 
             <div class="flex flex-col gap-2">
               <div class="flex flex-col">
+                Rows and columns of cubes to show.
                 <div>
-                  <input type="range" bind:value={range.x} min="1" max="100"/>
-                  {range.x}
+                  <input
+                    type="range"
+                    bind:value={config.zoom_range.x}
+                    min="1"
+                    max="36"
+                  />
+                  {config.zoom_range.x}
                 </div>
                 <div>
-                  <input type="range" bind:value={range.y} min="1" max="100"/>
-                  {range.y}
+                  <input
+                    type="range"
+                    bind:value={config.zoom_range.y}
+                    min="1"
+                    max="36"
+                  />
+                  {config.zoom_range.y}
                 </div>
               </div>
               <span>
-                Select: ({ui.select_pos.x}, {ui.select_pos.y})
+                Cursor: ({ui.select_pos.x}, {ui.select_pos.y})
               </span>
-              <span>
-                <input
-                  type="checkbox"
-                  name=""
-                  id="enable_arrows"
-                  bind:checked={config.enable_arrows}
+
+              <span class="w-fit">
+                <Toggle
+                  bind:checked={ui.show_steps}
+                  text="Show Instructional Cubes?"
                 />
-                <label for="enable_arrows">Enable arrow controls</label>
-              </span>
-              <span>
-                <input
-                  type="checkbox"
-                  name=""
-                  id="show_zoomed"
-                  bind:checked={config.show_zoomed}
+                <Toggle
+                  bind:checked={ui.enable_arrows}
+                  text="Use arrow keys to move"
                 />
-                <label for="show_zoomed">Show Zoomed Rubiks</label>
+                <Toggle
+                  bind:checked={ui.show_zoomed}
+                  text="Full-Width Rubiks"
+                />
               </span>
             </div>
           </div>
@@ -1197,6 +1339,56 @@
             </div>
           {/if}
 
+          {#if showVideoCanvas}
+            <div class="flex flex-col">
+              <span> Crop Screen Capture </span>
+
+              <span>
+                Left
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  bind:value={config.screenCapturePadding.left}
+                />
+                {config.screenCapturePadding.left}
+              </span>
+
+              <span>
+                Right
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  bind:value={config.screenCapturePadding.right}
+                />
+                {config.screenCapturePadding.right}
+              </span>
+
+              <span>
+                Top
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  bind:value={config.screenCapturePadding.top}
+                />
+                {config.screenCapturePadding.top}
+              </span>
+
+              <span>
+                Bottom
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  bind:value={config.screenCapturePadding.bottom}
+                />
+                {config.screenCapturePadding.bottom}
+              </span>
+            </div>
+          {/if}
+
           <div class="flex">
             <div class="flex-col">
               <canvas
@@ -1219,49 +1411,40 @@
                 bind:this={output_canvas}
                 style="border: 4px solid red;"
               />
-              <table class="table">
-                <tr>
-                  <td />
-                  <td>
-                    <div class="min-w-[20px]">
-                      {ui.select_pos.x + 1}
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="align-top">
-                    <div class="min-w-[20px] text-center">
-                      {ui.select_pos.y + 1}
-                    </div>
-                  </td>
-                  <td>
-                    <canvas
-                      class={!config.show_zoomed ? '!w-fit' : '' }
-                      style="image-rendering: pixelated;"
-                      id="preview"
-                      bind:this={preview_canvas}
-                      width={range.x * 3 * Number(config.rubiks_scale)}
-                      height={range.y * 3 * Number(config.rubiks_scale)}
-                    />
-                  </td>
-                </tr>
-              </table>
-              <div style="position: relative" id="canvas_wrapper">
+
+              {#if ui.show_steps}
+                <div class="min-w-[20px]">
+                  Column {ui.select_pos.x + 1}, Row {ui.select_pos.y + 1}
+                </div>
+              {/if}
+
+              <canvas
+                class:w-full={ui.show_zoomed}
+                style="image-rendering: pixelated;"
+                id="preview"
+                class="border-red-500 border-4"
+                class:fixed={!ui.show_steps}
+                class:top-[-100vh]={!ui.show_steps}
+                class:relative={ui.show_steps}
+                bind:this={preview_canvas}
+                width={config.zoom_range.x * 3 * Number(config.rubiks_scale)}
+                height={config.zoom_range.y * 3 * Number(config.rubiks_scale)}
+              />
+
+              <div
+                style="position: relative"
+                id="canvas_wrapper"
+                bind:clientHeight={bgcanvas_clientHeight}
+                bind:clientWidth={bgcanvas_clientWidth}
+              >
                 <canvas
-                  style="position: absolute;"
                   class:shown={config.has_mockup}
                   id="bgcanvas"
                   width={ui.mockupwidth}
                   height={ui.mockupheight}
                   bind:this={bgcanvas}
-                  bind:clientHeight={bgcanvas_clientHeight}
-                  bind:clientWidth={bgcanvas_clientWidth}
                 />
 
-                <!--
-                top = (pos y / 100) x (canvas height) - (half of canvas height)
-                left = (pos x / 100) x (canvas width) - (half of canvas width)
-              -->
                 {#if config.has_mockup}
                   <canvas
                     style="position: absolute;
@@ -1358,6 +1541,8 @@
   }
   canvas {
     border: 1px solid black;
+  }
+  #bgcanvas {
     width: 100vw;
   }
   #rubiks_canvas {
@@ -1369,6 +1554,7 @@
       -8px 7px 5px rgba(60, 60, 60, 0.25),
       -9px 8px 6px rgba(60, 60, 60, 0.2222222222);
           */
+    width: 100vw;
   }
   .slider-wrapper > * {
     margin: 4px;

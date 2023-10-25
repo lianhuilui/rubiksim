@@ -16,6 +16,10 @@ const clamp = (min, max, value) =>
 let cache = {}
 
 const hexToRgb = (hex) => {
+    if (typeof hex != 'string') {
+        throw Error("wrong type in hexToRgb")
+    }
+
     if (cache[hex]) {
         return cache[hex]
     } else {
@@ -60,7 +64,7 @@ const nearestPixel = (rgb, pallette, gray_scale_nearest_pixel) => {
     if (pallette_cache[pallette]) {
         colors = pallette_cache[pallette]
     } else {
-        colors = pallette.split(",");
+        colors = pallette;
         pallette_cache[pallette] = colors;
     }
 

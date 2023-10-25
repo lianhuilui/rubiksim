@@ -13,7 +13,7 @@
 <div
     class="p-2 {checked
         ? toggleClass
-        : ''} rounded-lg border-solid border-[1px] text-center"
+        : ''} rounded-lg border-solid border-[1px]"
     on:click={toggle}
     on:click
     style={bgcolor ? `background-color: ${bgcolor}` : ""}
