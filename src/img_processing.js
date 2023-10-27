@@ -212,7 +212,7 @@ const drawGrid = (rctx, grid_size, rubiks_scale, width, height, color="#000000")
     rctx.lineWidth = grid_size;
     rctx.strokeStyle = color;
 
-    for (let y = 0; y < height; y++) {
+    for (let y = 0; y < height + 1; y++) {
         rctx.beginPath();
         rctx.moveTo(0, y * rubiks_scale);
         rctx.lineTo(
@@ -222,7 +222,7 @@ const drawGrid = (rctx, grid_size, rubiks_scale, width, height, color="#000000")
         rctx.stroke();
     }
 
-    for (let x = 0; x < width; x++) {
+    for (let x = 0; x < width + 1; x++) {
         rctx.beginPath();
         rctx.moveTo(x * rubiks_scale, 0);
         rctx.lineTo(
