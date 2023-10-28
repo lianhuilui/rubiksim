@@ -30,90 +30,95 @@
       }
     });
 
+    resetPallettes();
     setPallette(pallettes[0]);
   });
 
   let image_loaded = false;
 
-  let pallettes = [
-    {
-      name: "Rubik's Colors",
-      colors: [
-        { color: "#013082", on: true },
-        { color: "#BB2328", on: true },
-        { color: "#01B351", on: true },
-        { color: "#FE8F25", on: true },
-        { color: "#F5FF42", on: true },
-        { color: "#ECF3F6", on: true },
-      ],
-    },
-    {
-      name: "Rubik's Colors W/O Green",
-      colors: [
-        { color: "#013082", on: true },
-        { color: "#BB2328", on: true },
-        { color: "#FE8F25", on: true },
-        { color: "#F5FF42", on: true },
-        { color: "#ECF3F6", on: true },
-      ],
-    },
-    {
-      name: "Black & White",
-      colors: [
-        { color: "#000", on: true },
-        { color: "#fff", on: true },
-      ],
-    },
-    {
-      name: "Black, Gray, White",
-      colors: [
-        { color: "#000", on: true },
-        { color: "#666", on: true },
-        { color: "#fff", on: true },
-      ],
-    },
-    {
-      name: "Gray Scale",
-      colors: [
-        { color: "#000", on: true },
-        { color: "#111", on: true },
-        { color: "#222", on: true },
-        { color: "#333", on: true },
-        { color: "#444", on: true },
-        { color: "#555", on: true },
-        { color: "#666", on: true },
-        { color: "#777", on: true },
-        { color: "#888", on: true },
-        { color: "#999", on: true },
-        { color: "#aaa", on: true },
-        { color: "#bbb", on: true },
-        { color: "#ccc", on: true },
-        { color: "#ddd", on: true },
-        { color: "#eee", on: true },
-        { color: "#fff", on: true },
-      ],
-    },
-    {
-      name: "RGB",
-      colors: [
-        { color: "#000", on: true },
-        { color: "#f00", on: true },
-        { color: "#0f0", on: true },
-        { color: "#00f", on: true },
-        { color: "#fff", on: true },
-      ],
-    },
-    {
-      name: "CMYK",
-      colors: [
-        { color: "#000", on: true },
-        { color: "#0ff", on: true },
-        { color: "#f0f", on: true },
-        { color: "#ff0", on: true },
-        { color: "#fff", on: true },
-      ],
-    },
-  ];
+  let pallettes = [];
+
+  function resetPallettes() {
+    pallettes = [
+      {
+        name: "Rubik's Colors",
+        colors: [
+          { color: "#013082", on: true },
+          { color: "#BB2328", on: true },
+          { color: "#01B351", on: true },
+          { color: "#FE8F25", on: true },
+          { color: "#F5FF42", on: true },
+          { color: "#ECF3F6", on: true },
+        ],
+      },
+      {
+        name: "Rubik's Colors W/O Green",
+        colors: [
+          { color: "#013082", on: true },
+          { color: "#BB2328", on: true },
+          { color: "#FE8F25", on: true },
+          { color: "#F5FF42", on: true },
+          { color: "#ECF3F6", on: true },
+        ],
+      },
+      {
+        name: "Black & White",
+        colors: [
+          { color: "#000", on: true },
+          { color: "#fff", on: true },
+        ],
+      },
+      {
+        name: "Black, Gray, White",
+        colors: [
+          { color: "#000", on: true },
+          { color: "#666", on: true },
+          { color: "#fff", on: true },
+        ],
+      },
+      {
+        name: "Gray Scale",
+        colors: [
+          { color: "#000", on: true },
+          { color: "#111", on: true },
+          { color: "#222", on: true },
+          { color: "#333", on: true },
+          { color: "#444", on: true },
+          { color: "#555", on: true },
+          { color: "#666", on: true },
+          { color: "#777", on: true },
+          { color: "#888", on: true },
+          { color: "#999", on: true },
+          { color: "#aaa", on: true },
+          { color: "#bbb", on: true },
+          { color: "#ccc", on: true },
+          { color: "#ddd", on: true },
+          { color: "#eee", on: true },
+          { color: "#fff", on: true },
+        ],
+      },
+      {
+        name: "RGB",
+        colors: [
+          { color: "#000", on: true },
+          { color: "#f00", on: true },
+          { color: "#0f0", on: true },
+          { color: "#00f", on: true },
+          { color: "#fff", on: true },
+        ],
+      },
+      {
+        name: "CMYK",
+        colors: [
+          { color: "#000", on: true },
+          { color: "#0ff", on: true },
+          { color: "#f0f", on: true },
+          { color: "#ff0", on: true },
+          { color: "#fff", on: true },
+        ],
+      },
+    ];
+  }
 
   let matrices = [
     [
@@ -1183,6 +1188,10 @@
                 bind:checked={ui.allow_edit_colors}
                 text={"Make Colors Editable"}
               />
+              <button
+                class="h-10 p-2 rounded-lg border-solid border-2 text-center"
+                on:click={resetPallettes}>Reset Pallettes</button
+              >
             </div>
 
             <div class="flex">
