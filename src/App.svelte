@@ -825,7 +825,7 @@
 
       m.drawGrid(
         pctx,
-        grid_size / 2,
+        grid_size / 4,
         rubiks_scale,
         config.zoom_range.x * 3,
         config.zoom_range.y * 3
@@ -839,9 +839,27 @@
         config.zoom_range.y * 3
       ); // 9 /3, 9/3);
       // m.drawGrid(pctx, grid_size, rubiks_scale, 9, 9);
-    }
 
-    // TODO: draw the pixels selected pixels (based on ui.select_pos) on second canvas
+      if (ui.select_pos.x < 0) {
+        let outofbounds = - ui.select_pos.x
+        pctx.fillRect(0, 0, outofbounds * rubiks_scale * 3, preview_canvas.height)
+      }
+
+      if (ui.select_pos.y < 0) {
+        let outofbounds = - ui.select_pos.y
+        pctx.fillRect(0, 0, preview_canvas.width, outofbounds * rubiks_scale * 3)
+      }
+
+      if (ui.select_pos.x + config.zoom_range.x > ui.resizedwidth/3) {
+        let outofbounds = ui.select_pos.x + config.zoom_range.x - ui.resizedwidth/3
+        pctx.fillRect(Math.max(0, preview_canvas.width - (outofbounds * rubiks_scale * 3)), 0, preview_canvas.width, preview_canvas.height)
+      }
+
+      if (ui.select_pos.y + config.zoom_range.y > ui.resizedheight/3) {
+        let outofbounds = ui.select_pos.y + config.zoom_range.y - ui.resizedheight/3
+        pctx.fillRect(0, Math.max(0, preview_canvas.height - (outofbounds * rubiks_scale * 3)), preview_canvas.width, preview_canvas.height)
+      }
+    }
 
     if (config.show_rubiks) {
       let rctx = rubiks_canvas.getContext("2d");
@@ -1357,7 +1375,7 @@
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max="1000"
                   bind:value={config.screenCapturePadding.left}
                 />
                 {config.screenCapturePadding.left}
@@ -1368,7 +1386,7 @@
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max="1000"
                   bind:value={config.screenCapturePadding.right}
                 />
                 {config.screenCapturePadding.right}
@@ -1379,7 +1397,7 @@
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max="1000"
                   bind:value={config.screenCapturePadding.top}
                 />
                 {config.screenCapturePadding.top}
@@ -1390,7 +1408,7 @@
                 <input
                   type="range"
                   min="0"
-                  max="100"
+                  max="1000"
                   bind:value={config.screenCapturePadding.bottom}
                 />
                 {config.screenCapturePadding.bottom}
